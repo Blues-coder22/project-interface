@@ -1,5 +1,23 @@
 # StayExplore Kenya: Frontend Website
 
+## Update 5: map search, nearby recommendations, messaging
+- **Map (Leaflet + OpenStreetMap + Browser Geolocation, as in the project document).** The homepage has a map of every approved stay and published attraction in Kenya. Search a place, attraction or stay (instant, built-in list of Kenyan places; press Enter or choose "Search all of Kenya" to query OpenStreetMap for anything else), or tap "Use my location". Pick a radius and filter by Attractions / Stays. Leaflet is bundled in `vendor/leaflet/`; only the map tiles and the optional OpenStreetMap place search need internet.
+- **Bidirectional recommendations by real distance (km).** Choose an attraction and the stays around it are listed first; choose a stay and the attractions around it come first. Each list has a "View all N … near X" link that opens Search filtered to that area, nearest first (stays and attractions tabs both honour it, and Search has a working "View map").
+- **Homepage sections are live and linked.** Featured Stays and Popular Attractions come from the store (unpublished / unapproved items disappear), each with "View all N stays →" / "View all N attractions →" next to the heading, plus "N stays nearby" / "N attractions nearby" on every card.
+- **More of Kenya:** 8 more attractions (Amboseli, Lake Nakuru, Lake Naivasha & Hell's Gate, Nairobi National Park, Karura Forest, Diani, Fort Jesus, Watamu) and two more stays (Diani, Naivasha). They reuse the supplied photos; replace them from the admin and host forms.
+- **Pins for hosts and admins:** listing and attraction forms have a map picker (click, drag, or "Use my current location"). A listing without a pin gets an approximate location from its place name, and the admin integrity checks flag it.
+- **Messaging (tourist ↔ host).** "Message host" on every stay and on My bookings; hosts reply from Messages and can start a chat with guests who have booked. One conversation per guest and stay, unread badges in the navigation, plain-text only, 1000-character limit, other open tabs update live. Admins cannot read private messages. Real-time chat is listed as future work in the project document, so this is a simple inbox.
+- **Fixed:** `index.html` loaded `app.js` twice, which started everything twice on the homepage. The duplicate tag is removed and the script now ignores a second load.
+
+## Update 4: trust & safety (reviews, moderation, incidents, listing integrity)
+Still browser-only (interface first); the rules below are what a backend should later enforce.
+- **Verified reviews:** only a *completed* booking can be reviewed, by the guest who made it, once, within 14 days of the stay. On My bookings, a "Mark completed (demo)" shortcut stands in for the stay finishing so you can try the flow.
+- **Simultaneous reveal:** the guest's review of the listing and the host's review of the guest stay sealed until both are submitted, or the 14-day window closes. Neither side can read the other's before submitting. Public reviews show first name only and a "Verified stay" tag; listing ratings recalculate from revealed, un-moderated reviews.
+- **Moderation (admin):** Moderate reviews lists every review with status (Published / Sealed / Hidden / Removed). Hosts can report a review; admins can Hide, Restore, Remove or Dismiss the flag. Ratings update immediately.
+- **Incident reports:** tourists (Report an incident, or Report on a booking / listing) and hosts (Report incident) file reports. Theft, abuse or harassment and physical safety or assault are **critical**: they show an emergency notice (999 / 112), sort to the top of the admin queue and are counted on the dashboard. Admins open a report to add internal notes, change status, suspend the listing, host or guest, and must send the reporter a message when closing. Reporters see their reports and the outcome.
+- **Listing integrity:** the admin approval screen runs checks (duplicate listing, price range, host account, own photos, description length, amenities, open critical incidents) and warns before approving. Changing the name, location or type of an approved listing sends it back to review.
+- Evidence uploads record file names only in this demo.
+
 ## Update 3: every sample listing has its own host
 Sample listings now belong to named hosts, who are real accounts you can sign in as (password for all: `Host123!`):
 

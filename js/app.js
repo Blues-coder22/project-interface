@@ -3,16 +3,18 @@
    NOTE: browser-only demo security. Real security needs a server (hashed passwords, sessions, role checks). */
 (function () {
 'use strict';
+if (window.__stayExploreLoaded) return;   // guards against the script being included twice on a page
+window.__stayExploreLoaded = true;
 
 /* ---------- constants ---------- */
 const K = { acc:'stayexplore_accounts', ses:'stayexplore_session', next:'stayexplore_next',
             flash:'stayexplore_flash', draft:'stayexplore_draft', bookings:'stayexplore_bookings',
             last:'stayexplore_last_booking', favs:'stayexplore_favs_',
-            listings:'stayexplore_listings', attractions:'stayexplore_attractions', allbk:'stayexplore_bookings_v2' };
+            listings:'stayexplore_listings', attractions:'stayexplore_attractions', allbk:'stayexplore_bookings_v2', reviews:'stayexplore_reviews', incidents:'stayexplore_incidents', threads:'stayexplore_threads' };
 const SESSION_HOURS = 24;
 const ROLE_PAGES = {
-  tourist:['book.html','payment.html','confirmation.html','bookings.html','review.html','favourites.html','report.html','profile.html'],
-  host:['host-dashboard.html','host-add-listing.html','host-edit-listing.html','host-manage-listings.html','host-availability.html','host-manage-bookings.html','host-payments.html','host-reviews.html','host-report-incident.html','host-profile.html'],
+  tourist:['book.html','payment.html','confirmation.html','bookings.html','review.html','favourites.html','report.html','profile.html','messages.html'],
+  host:['host-dashboard.html','host-add-listing.html','host-edit-listing.html','host-manage-listings.html','host-availability.html','host-manage-bookings.html','host-payments.html','host-reviews.html','host-report-incident.html','host-profile.html','host-messages.html'],
   admin:['admin-dashboard.html','admin-listing-approvals.html','admin-manage-users.html','admin-moderate-reviews.html','admin-incident-reports.html','admin-attractions.html','admin-profile.html']
 };
 const OPEN_PAGES = ['index.html','search.html','details.html','attraction-details.html','how-it-works.html','about.html','contact.html','help.html','privacy.html','terms.html','login.html','register.html'];
@@ -104,10 +106,10 @@ window.showToast=showToast;
 function navLinks(s){
   const p=currentPage(), hash=location.hash;
   const items=[['index.html','Home'],['search.html','Discover'],['search.html#attractions','Attractions'],['how-it-works.html','How it works'],['about.html','About us']];
-  if(s && s.role==='tourist') items.push(['bookings.html','My trips']);
+  if(s && s.role==='tourist'){ items.push(['bookings.html','My trips']); items.push(['messages.html','Messages']); }
   return items.map(([h,l])=>{
     const f=h.split('#')[0], active = h.includes('#') ? (p===f && hash==='#attractions') : (p===f && hash!=='#attractions');
-    return `<a href="${h}" ${active?'class="active" aria-current="page"':''}>${l}</a>`;
+    return `<a href="${h}" ${active?'class="active" aria-current="page"':''}>${l}${h==='messages.html'?' <span class="msg-badge" data-msg-badge hidden></span>':''}</a>`;
   }).join('');
 }
 function accountActions(s,cls){
@@ -201,8 +203,25 @@ const SAMPLE_HOSTS=[
   {id:'host-ali',name:'Ali Hassan',email:'ali@stayexplore.co.ke',phone:'+254 720 890 123',business:'Lamu Retreat'},
   {id:'host-peter',name:'Peter Maina',email:'peter@stayexplore.co.ke',phone:'+254 730 901 234',business:'Forest View Lodge'}
 ];
-const SAMPLE_OWNER={'karura-house':'host-wanjiku','mt-kenya-forest-lodge':'host-wanjiku','high-rise':'host-daniel','fernside-retreat':'host-grace','lamu-old-town-retreat':'host-fatma','mara-savannah-camp':'host-joseph','lamu-retreat':'host-ali','forest-view-lodge':'host-peter'};
-SEED_LISTINGS.forEach(l=>{ l.ownerId=SAMPLE_OWNER[l.id]||l.ownerId; });
+const SAMPLE_OWNER={'karura-house':'host-wanjiku','mt-kenya-forest-lodge':'host-wanjiku','high-rise':'host-daniel','fernside-retreat':'host-grace','lamu-old-town-retreat':'host-fatma','mara-savannah-camp':'host-joseph','lamu-retreat':'host-ali','forest-view-lodge':'host-peter','diani-sands-villa':'host-fatma','naivasha-lake-lodge':'host-peter'};
+SEED_LISTINGS.push(
+  {id:'diani-sands-villa',name:'Diani Sands Villa',location:'Diani Beach, Kwale',region:'coast',price:12500,type:'Villa',description:'A breezy beach villa a short walk from the white sands of Diani, with a shaded veranda, garden and easy access to the reef and restaurants.',amenities:['Wi-Fi','Breakfast','Parking','Sea view'],rules:'No loud music after 10pm.',rating:4.7,reviews:22,score:88,bookings:17,status:'approved',hostName:'Fatma Bakari',submitted:'2026-09-08',images:[IMG.coastBeach,IMG.lamuTown]},
+  {id:'naivasha-lake-lodge',name:'Naivasha Lake Lodge',location:'Lake Naivasha, Nakuru',region:'highlands',price:10800,type:'Lodge',description:'A quiet lakeside lodge with acacia-shaded lawns, birdlife at the water and easy day trips to Hell\'s Gate and the Rift Valley.',amenities:['Wi-Fi','Breakfast','Parking','Garden'],rules:'Please keep to the paths after dark; hippos graze on the lawns.',rating:4.6,reviews:19,score:86,bookings:14,status:'approved',hostName:'Peter Maina',submitted:'2026-09-05',images:[IMG.kenyaLake,IMG.karenCottage]}
+);
+const SEED_COORDS={'karura-house':[-1.2676,36.8108],'high-rise':[-1.2921,36.7872],'fernside-retreat':[-1.3226,36.7085],'mt-kenya-forest-lodge':[-0.0420,37.1100],'lamu-old-town-retreat':[-2.2790,40.9160],'mara-savannah-camp':[-1.4700,35.1450],'lamu-retreat':[-2.2717,40.9025],'forest-view-lodge':[0.0050,37.0300],'diani-sands-villa':[-4.3000,39.5900],'naivasha-lake-lodge':[-0.7700,36.4000]};
+SEED_LISTINGS.forEach(l=>{ l.ownerId=SAMPLE_OWNER[l.id]||l.ownerId; const c=SEED_COORDS[l.id]; if(c){ l.lat=c[0]; l.lng=c[1]; l.coordsSource='pinned'; } });
+const ATTR_COORDS={'maasai-mara':[-1.4900,35.1400],'mount-kenya':[-0.1521,37.3084],'lamu-old-town':[-2.2696,40.9006]};
+SEED_ATTRACTIONS.forEach(a=>{ const c=ATTR_COORDS[a.id]; if(c){ a.lat=c[0]; a.lng=c[1]; a.featured=true; a.coordsSource='pinned'; } });
+SEED_ATTRACTIONS.push(
+  {id:'amboseli-national-park',name:'Amboseli National Park',county:'Kajiado',category:'Wildlife',region:null,lat:-2.6527,lng:37.2606,coordsSource:'pinned',tagline:'Big elephant herds beneath the snows of Kilimanjaro.',description:'Flat, dusty plains and swamps where huge elephant herds walk with Mount Kilimanjaro rising across the border. One of the best places in Africa to photograph elephants up close.',terrain:'Open, dry plains with swamps and acacia',bestTime:'June – October (dry season)',climate:'Hot, dry and dusty',bestFor:'Elephants, photography, game drives',images:[IMG.maraSunset,IMG.maraDeck],status:'published'},
+  {id:'lake-nakuru-national-park',name:'Lake Nakuru National Park',county:'Nakuru',category:'Wildlife',region:null,lat:-0.3667,lng:36.0833,coordsSource:'pinned',tagline:'A soda lake ringed by woodland, rhinos and birdlife.',description:'A compact park around a shallow soda lake, famous for flamingos and for both black and white rhino. Easy to explore in a day from Nakuru town.',terrain:'Lakeshore, grassland and acacia woodland',bestTime:'June – March',climate:'Warm days, cool evenings',bestFor:'Rhinos, birdwatching, short trips',images:[IMG.kenyaLake,IMG.maraDeck],status:'published'},
+  {id:'hells-gate-naivasha',name:"Lake Naivasha & Hell's Gate",county:'Nakuru',category:'Nature',region:null,lat:-0.8800,lng:36.3200,coordsSource:'pinned',tagline:'Cycle between cliffs and geysers beside a freshwater Rift Valley lake.',description:"A freshwater lake with hippos and birdlife, and next door the gorge and cliffs of Hell's Gate, where you can walk or cycle among zebra and giraffe.",terrain:'Freshwater lake, cliffs and open grassland',bestTime:'June – October and January – February',climate:'Warm days, cool nights',bestFor:'Cycling, boat trips, hiking',images:[IMG.kenyaLake,IMG.karenCottage],status:'published'},
+  {id:'nairobi-national-park',name:'Nairobi National Park',county:'Nairobi',category:'Wildlife',region:null,lat:-1.3733,lng:36.8588,coordsSource:'pinned',tagline:'Lions and giraffes with the city skyline behind them.',description:'The only national park inside a capital city: savannah, rhino and lion just minutes from the city centre. Perfect for a half-day game drive.',terrain:'Open savannah and forest patches beside the city',bestTime:'Year-round (best June – October)',climate:'Mild, with a dry and a wet season',bestFor:'Short game drives, families',images:[IMG.maraSunset,IMG.nairobiDusk],status:'published'},
+  {id:'karura-forest',name:'Karura Forest',county:'Nairobi',category:'Nature',region:null,lat:-1.2370,lng:36.8350,coordsSource:'pinned',tagline:'Waterfalls, caves and shaded trails in the middle of Nairobi.',description:'One of the largest urban forests in the world, with walking and cycling trails, a waterfall, a cave and plenty of birdlife. A calm start or end to any Nairobi trip.',terrain:'Indigenous forest with rivers and trails',bestTime:'Year-round',climate:'Cool and shaded',bestFor:'Walking, cycling, picnics',images:[IMG.kenyaLodge,IMG.karenCottage],status:'published'},
+  {id:'diani-beach',name:'Diani Beach',county:'Kwale',category:'Beach',region:null,lat:-4.3200,lng:39.5800,coordsSource:'pinned',tagline:'Miles of powder-white sand and turquoise water.',description:'A long white beach backed by palms and coral reef. Swim, snorkel, kite-surf or simply do nothing for a few days.',terrain:'White sandy beach, coral reef and palms',bestTime:'December – March and July – October',climate:'Hot and humid with sea breezes',bestFor:'Beach holidays, snorkelling, kite-surfing',images:[IMG.coastBeach,IMG.lamuTown],status:'published'},
+  {id:'fort-jesus-mombasa',name:'Fort Jesus, Mombasa',county:'Mombasa',category:'Culture',region:null,lat:-4.0626,lng:39.6797,coordsSource:'pinned',tagline:'A 16th-century Portuguese fort on the Mombasa waterfront.',description:'A UNESCO World Heritage fort built by the Portuguese in 1593, overlooking the old harbour. Pair it with a walk through Mombasa Old Town.',terrain:'Coral-stone fort on the harbour',bestTime:'Year-round',climate:'Hot and humid',bestFor:'History, culture, city walks',images:[IMG.lamuTown,IMG.coastBeach],status:'published'},
+  {id:'watamu-marine-park',name:'Watamu Marine National Park',county:'Kilifi',category:'Beach',region:null,lat:-3.3500,lng:40.0300,coordsSource:'pinned',tagline:'Coral gardens, turtles and quiet white beaches.',description:'A protected marine park with coral gardens, tidal pools and turtle conservation, beside quiet beaches and the Gede ruins.',terrain:'Coral reef, tidal pools and white beaches',bestTime:'October – March',climate:'Hot and humid',bestFor:'Snorkelling, turtles, relaxing',images:[IMG.coastBeach],status:'published'}
+);
 async function ensureSampleHosts(){
   const list=getAccounts(); let changed=false;
   for(const h of SAMPLE_HOSTS){
@@ -218,7 +237,7 @@ const putLS = (k,v)=>{ try{ localStorage.setItem(k,v); return true; }catch{ retu
 function seedStore(){
   if(!ls.get(K.listings)) putLS(K.listings,JSON.stringify(SEED_LISTINGS));
   if(!ls.get(K.attractions)) putLS(K.attractions,JSON.stringify(SEED_ATTRACTIONS));
-  if(ls.get('stayexplore_data_v')!=='3') migrateData();
+  if(ls.get('stayexplore_data_v')!=='4') migrateData();
 }
 /* v2: sample listings are manageable by any host (so bookings on them are visible), and old per-guest bookings move to the shared list */
 function migrateData(){
@@ -235,7 +254,16 @@ function migrateData(){
   /* v3: every sample listing (and booking on it) now belongs to its own sample host */
   const L2=readJSON(ls,K.listings,[]); L2.forEach(l=>{ if((l.ownerId==='demo'||l.ownerId==='seed') && SAMPLE_OWNER[l.id]) l.ownerId=SAMPLE_OWNER[l.id]; }); putLS(K.listings,JSON.stringify(L2));
   const B2=readJSON(ls,K.allbk,[]); B2.forEach(b=>{ const l=L2.find(x=>x.id===b.stayId); if(l) b.hostId=l.ownerId; }); putLS(K.allbk,JSON.stringify(B2));
-  ls.set('stayexplore_data_v','3');
+  /* v4: map coordinates, new sample attractions and stays */
+  const L3=readJSON(ls,K.listings,[]);
+  SEED_LISTINGS.forEach(sl=>{ const e=L3.find(x=>x.id===sl.id); if(!e) L3.push(JSON.parse(JSON.stringify(sl))); else if(!hasGeo(e)&&hasGeo(sl)){ e.lat=sl.lat; e.lng=sl.lng; e.coordsSource='pinned'; } });
+  L3.forEach(l=>{ if(!hasGeo(l)){ const p=placeFor(l.location+' '+l.name); if(p){ l.lat=p.lat; l.lng=p.lng; l.coordsSource='approx'; } } });
+  putLS(K.listings,JSON.stringify(L3));
+  const A3=readJSON(ls,K.attractions,[]);
+  SEED_ATTRACTIONS.forEach(sa=>{ const e=A3.find(x=>x.id===sa.id); if(!e) A3.push(JSON.parse(JSON.stringify(sa))); else { if(!hasGeo(e)&&hasGeo(sa)){ e.lat=sa.lat; e.lng=sa.lng; e.coordsSource='pinned'; } if(sa.featured) e.featured=true; } });
+  A3.forEach(a=>{ if(!hasGeo(a)){ const p=placeFor(a.county+' '+a.name); if(p){ a.lat=p.lat; a.lng=p.lng; a.coordsSource='approx'; } } });
+  putLS(K.attractions,JSON.stringify(A3));
+  ls.set('stayexplore_data_v','4');
 }
 const getListings = ()=>{ seedStore(); const v=readJSON(ls,K.listings,null); return Array.isArray(v)?v:JSON.parse(JSON.stringify(SEED_LISTINGS)); };
 const saveListings = a=>putLS(K.listings,JSON.stringify(a));
@@ -243,7 +271,7 @@ const getAttractions = ()=>{ seedStore(); const v=readJSON(ls,K.attractions,null
 const saveAttractions = a=>putLS(K.attractions,JSON.stringify(a));
 const listingById = id=>getListings().find(l=>l.id===id);
 const attractionById = id=>getAttractions().find(a=>a.id===id);
-const nearbyStays = a=>getListings().filter(l=>l.status==='approved' && (a.region ? l.region===a.region : (a.county && (l.location||'').toLowerCase().includes(a.county.toLowerCase()))));
+const nearbyStays = (a,r=100)=>hasGeo(a)?withDist(approvedStays(),a).filter(x=>x.d<=r).map(x=>Object.assign({},x.o,{_km:x.d})):getListings().filter(l=>l.status==='approved' && (a.region ? l.region===a.region : (a.county && (l.location||'').toLowerCase().includes(a.county.toLowerCase()))));
 const canEditListing = l=>{ const s=getSession(); return !!(s && l && s.role==='host' && l.ownerId===s.id); };
 
 const slug = s=>String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'item';
@@ -298,16 +326,18 @@ function bindPreviews(){
 const setStat = (k,v)=>document.querySelectorAll(`[data-stat="${k}"]`).forEach(e=>e.textContent=v);
 
 /* ---------- tourist: stay list, stay page ---------- */
-function stayCardHTML(l){
-  const r=+l.rating||0, amen=(l.amenities||[]).slice(0,3).join(' · ');
-  return `<article class="card pad list-card filterable" data-price="${+l.price}" data-rating="${r}" data-score="${+l.score||75}" data-region="${esc(l.region||'')}" data-amenities="${amenSlugs(l.amenities).join(',')}"><div class="photo" style="${bgStyle(coverOf(l))}"></div><div><div class="eyebrow">Smart score ${+l.score||75}</div><h3>${esc(l.name)}</h3><div class="rating">${r?`${stars(r)} <span class="small">${r.toFixed(1)} · ${l.reviews||0} reviews</span>`:'<span class="small">New listing · no reviews yet</span>'}</div><p class="small">${esc(l.location)}${amen?' · '+esc(amen):''}</p></div><div><div class="price">KES ${Math.round(l.price).toLocaleString('en-KE')}<small>/night</small></div><a class="btn btn-sm" href="details.html?id=${encodeURIComponent(l.id)}">View stay</a></div></article>`;
+function stayCardHTML(l,near){
+  const r=+l.rating||0, amen=(l.amenities||[]).slice(0,3).join(' · '), km=near&&hasGeo(l)?distKm(near,{lat:+l.lat,lng:+l.lng}):null;
+  return `<article class="card pad list-card filterable" data-price="${+l.price}" data-rating="${r}" data-score="${+l.score||75}" data-region="${esc(l.region||'')}" data-id="${esc(l.id)}" data-lat="${hasGeo(l)?+l.lat:''}" data-lng="${hasGeo(l)?+l.lng:''}" data-dist="${km===null?'':km.toFixed(1)}" data-amenities="${amenSlugs(l.amenities).join(',')}"><div class="photo" style="${bgStyle(coverOf(l))}"></div><div><div class="eyebrow">Smart score ${+l.score||75}</div><h3>${esc(l.name)}</h3><div class="rating">${r?`${stars(r)} <span class="small">${r.toFixed(1)} · ${l.reviews||0} reviews</span>`:'<span class="small">New listing · no reviews yet</span>'}</div><p class="small">${esc(l.location)}${amen?' · '+esc(amen):''}</p>${km!==null?`<p class="small" style="color:var(--forest);font-weight:700">◉ ${fmtKm(km)} away</p>`:''}</div><div><div class="price">KES ${Math.round(l.price).toLocaleString('en-KE')}<small>/night</small></div><a class="btn btn-sm" href="details.html?id=${encodeURIComponent(l.id)}">View stay</a></div></article>`;
 }
 function attractionCardHTML(a){
-  return `<article class="card"><div class="photo" style="${bgStyle(coverOf(a))}"></div><div class="pad"><div class="eyebrow">${esc(a.category)} · ${esc(a.county)}</div><h3>${esc(a.name)}</h3><p class="small">${esc(a.tagline||'')}</p><a class="btn btn-sm" href="attraction-details.html?id=${encodeURIComponent(a.id)}">Explore attraction</a></div></article>`;
+  return `<article class="card"><div class="photo" style="${bgStyle(coverOf(a))}"></div><div class="pad"><div class="eyebrow">${esc(a.category)} · ${esc(a.county)}</div><h3>${esc(a.name)}</h3><p class="small">${esc(a.tagline||'')}</p>${a._km!==undefined?`<p class="small" style="color:var(--forest);font-weight:700">◉ ${fmtKm(a._km)} away</p>`:''}<a class="btn btn-sm" href="attraction-details.html?id=${encodeURIComponent(a.id)}">Explore attraction</a></div></article>`;
 }
 function initAttractionList(){
   const box=document.querySelector('#attractionList'); if(!box) return;
-  const items=getAttractions().filter(a=>a.status==='published');
+  const pr=new URLSearchParams(location.search), nm=(pr.get('near')||'').split(',').map(Number), near=nm.length===2&&nm.every(Number.isFinite)?{lat:nm[0],lng:nm[1],label:pr.get('label')||'this place',r:Math.min(500,Math.max(5,+pr.get('r')||100))}:null;
+  let items=getAttractions().filter(a=>a.status==='published');
+  if(near){ items=withDist(items.filter(hasGeo),near).filter(x=>x.d<=near.r).map(x=>Object.assign({},x.o,{_km:x.d})); const n=document.createElement('div'); n.className='notice region-note'; n.style.marginBottom='14px'; n.innerHTML=`Showing attractions within <strong>${near.r} km</strong> of <strong>${esc(near.label)}</strong>, nearest first. <a class="home-link" href="search.html#attractions">Show all attractions</a>`; box.parentElement.insertBefore(n,box); }
   box.innerHTML=items.length?items.map(attractionCardHTML).join(''):`<div class="card pad full empty"><h3>No attractions published yet.</h3><p class="small">Please check back soon.</p></div>`;
 }
 let currentStay=null;
@@ -328,10 +358,14 @@ function initStayPage(){
   const ratingCard=r?`<div class="card pad rating-summary"><div class="detail-card-heading"><div><div class="eyebrow">Guest rating</div><h2>${r.toFixed(1)}</h2></div><div class="rating-stars" aria-label="${r.toFixed(1)} out of 5 stars">${stars(r)}</div></div><p class="small">${r>=4.7?'Excellent':'Very good'} · ${l.reviews||0} verified reviews</p><div class="rating-bars">${bars}</div></div>`
     :`<div class="card pad rating-summary"><div class="eyebrow">Guest rating</div><h2>New</h2><p class="small">This is a new listing. Verified guest reviews will appear after the first stays.</p></div>`;
   const amen=(l.amenities||[]).map(a=>`<div class="amenity-item"><span class="amenity-icon">${esc(AMEN_ICON(a))}</span><div><strong>${esc(a)}</strong><small>Included</small></div></div>`).join('')||'<p class="small">The host has not listed amenities yet.</p>';
-  const nearby=reg?`<div class="card pad" style="margin-top:20px"><h2>Nearby attractions</h2><div class="map"><span class="pin" style="left:35%;top:35%"></span><span class="pin" style="left:65%;top:60%"></span><span class="pin" style="left:52%;top:75%"></span></div><div class="grid grid-3" style="margin-top:12px">${reg.nearby.map(([n,d])=>`<div><strong>${n}</strong><div class="small">${d}</div></div>`).join('')}</div></div>`:'';
-  const reviews=r?`<div class="card pad" style="margin-top:20px"><h2>Verified guest reviews</h2><div class="timeline"><div><div class="rating">★★★★★</div><strong>Beautiful and peaceful</strong><p class="small">Clean, comfortable and a thoughtful host. Exactly as pictured.</p></div><div><div class="rating">★★★★☆</div><strong>Great location</strong><p class="small">The stay worked well for exploring the area and nearby attractions.</p></div></div></div>`:'';
+  const na=nearbyAttractions(l,150).slice(0,5);
+  const nearby=hasGeo(l)?`<div class="card pad" style="margin-top:20px"><div class="detail-card-heading"><h2>Nearby attractions</h2>${na.length?`<a class="home-link" href="${nearHref(l,l.name,'attractions')}">See all →</a>`:''}</div><div class="detail-map" id="stayMap" aria-label="Map showing ${esc(l.name)} and nearby attractions"></div>${na.length?`<div class="grid grid-3" style="margin-top:12px">${na.slice(0,3).map(a=>`<a class="near-item" href="attraction-details.html?id=${encodeURIComponent(a.id)}"><span class="near-dot attraction"></span><span><strong>${esc(a.name)}</strong><span class="small">${esc(a.category)}</span></span><span class="near-km">${fmtKm(a._km)}</span></a>`).join('')}</div>`:'<p class="small" style="margin-top:10px">No published attractions within 150 km yet.</p>'}</div>`:(reg?`<div class="card pad" style="margin-top:20px"><h2>Nearby attractions</h2><div class="grid grid-3" style="margin-top:12px">${reg.nearby.map(([n,d])=>`<div><strong>${n}</strong><div class="small">${d}</div></div>`).join('')}</div></div>`:'');
+  const pr=publicReviews(l.id);
+  const reviews=pr.length?`<div class="card pad" style="margin-top:20px"><h2>Guest reviews</h2><div class="timeline">${pr.slice(0,6).map(x=>`<div><div class="rating">${stars(x.rating)} <span class="status success" style="font-size:10px">${x.seed?'Guest':'Verified stay'}</span></div><strong>${esc(firstName(x.authorName))}</strong> <span class="small">· ${longDate(x.created)}</span><p class="small">${esc(x.text)}</p></div>`).join('')}</div></div>`:`<div class="card pad" style="margin-top:20px"><h2>Guest reviews</h2><p class="small">No reviews yet. Reviews come only from guests with a completed booking.</p></div>`;
+  window.__stayMapJob=()=>{ const el=document.querySelector('#stayMap'); if(el) mountNearMap(el,Object.assign(stayPin(l),{}),na.map(attrPin)); };
   const banner=l.status!=='approved'?`<div class="notice" style="margin-bottom:16px"><strong>Preview.</strong> This listing is “${esc((STATUS[l.status]||[,l.status])[1])}” and is not visible to tourists yet.</div>`:'';
-  root.innerHTML=`${gallery}<section class="page" style="padding-top:30px"><div class="grid detail-layout"><div>${banner}<div class="eyebrow">${esc(l.type||'Stay')}</div><h1>${esc(l.name)}</h1><p class="rating">${esc((l.location||'').toUpperCase())}${r?` · ${r.toFixed(1)} (${l.reviews||0} REVIEWS)`:' · NEW LISTING'}</p><p class="sub" style="margin-top:18px">${esc(l.description)}</p><section class="detail-info-grid" aria-label="Stay ratings and amenities">${ratingCard}<div class="card pad amenities-card"><div class="eyebrow">What this stay offers</div><h2>Amenities</h2><div class="amenities-grid">${amen}</div></div></section>${l.rules?`<div class="card pad" style="margin-top:20px"><h2>House rules</h2><p class="small" style="font-size:13px">${esc(l.rules)}</p></div>`:''}${nearby}${reviews}</div><aside><div class="card pad" style="position:sticky;top:95px"><div class="price">KSh ${Math.round(l.price).toLocaleString('en-KE')} <small>/ night</small></div><div class="grid grid-2" style="margin-top:18px"><div class="field"><label>CHECK IN</label><input type="date" value="2026-10-14" data-draft="checkin" required></div><div class="field"><label>CHECK OUT</label><input type="date" value="2026-10-18" data-draft="checkout" required></div></div><div class="field" style="margin-top:14px"><label>GUESTS</label><select data-draft="guests"><option>2 guests</option><option>1 guest</option><option>3 guests</option></select></div><a class="btn" style="display:flex;margin-top:16px" href="book.html" data-reserve>Reserve</a><a class="home-link" style="display:block;text-align:center;margin-top:13px" href="favourites.html" data-fav="${esc(l.id)}" data-label="♡ Save to favourites">♡ Save to favourites</a><a class="home-link" style="display:block;text-align:center;margin-top:9px" href="report.html">Report this listing</a></div></aside></div></section>`;
+  root.innerHTML=`${gallery}<section class="page" style="padding-top:30px"><div class="grid detail-layout"><div>${banner}<div class="eyebrow">${esc(l.type||'Stay')}</div><h1>${esc(l.name)}</h1><p class="rating">${esc((l.location||'').toUpperCase())}${r?` · ${r.toFixed(1)} (${l.reviews||0} REVIEWS)`:' · NEW LISTING'}</p><p class="sub" style="margin-top:18px">${esc(l.description)}</p><section class="detail-info-grid" aria-label="Stay ratings and amenities">${ratingCard}<div class="card pad amenities-card"><div class="eyebrow">What this stay offers</div><h2>Amenities</h2><div class="amenities-grid">${amen}</div></div></section>${l.rules?`<div class="card pad" style="margin-top:20px"><h2>House rules</h2><p class="small" style="font-size:13px">${esc(l.rules)}</p></div>`:''}${nearby}${reviews}</div><aside><div class="card pad" style="position:sticky;top:95px"><div class="price">KSh ${Math.round(l.price).toLocaleString('en-KE')} <small>/ night</small></div><div class="grid grid-2" style="margin-top:18px"><div class="field"><label>CHECK IN</label><input type="date" value="2026-10-14" data-draft="checkin" required></div><div class="field"><label>CHECK OUT</label><input type="date" value="2026-10-18" data-draft="checkout" required></div></div><div class="field" style="margin-top:14px"><label>GUESTS</label><select data-draft="guests"><option>2 guests</option><option>1 guest</option><option>3 guests</option></select></div><a class="btn" style="display:flex;margin-top:16px" href="book.html" data-reserve>Reserve</a>${s&&s.role!=='tourist'?'':`<a class="btn btn-outline" style="display:flex;margin-top:10px" href="messages.html?stay=${esc(l.id)}">Message host</a>`}<a class="home-link" style="display:block;text-align:center;margin-top:13px" href="favourites.html" data-fav="${esc(l.id)}" data-label="♡ Save to favourites">♡ Save to favourites</a><a class="home-link" style="display:block;text-align:center;margin-top:9px" href="report.html?stay=${esc(l.id)}">Report this listing</a></div></aside></div></section>`;
+  window.__stayMapJob&&window.__stayMapJob();
 }
 
 /* ---------- tourist: attraction page ---------- */
@@ -344,9 +378,10 @@ function initAttractionPage(){
   }
   document.title=`${a.name} — StayExplore Kenya`;
   const imgs=(a.images&&a.images.length?a.images:defaultImages(a)), stays=nearbyStays(a);
-  const findHref=a.region?`search.html?region=${encodeURIComponent(a.region)}`:`search.html?q=${encodeURIComponent(a.county||a.name)}`;
+  const findHref=hasGeo(a)?nearHref(a,a.name,'stays'):(a.region?`search.html?region=${encodeURIComponent(a.region)}`:`search.html?q=${encodeURIComponent(a.county||a.name)}`);
   const fact=(t,v)=>v?`<div class="kpi"><div class="eyebrow">${t}</div><strong>${esc(v)}</strong></div>`:'';
-  root.innerHTML=`${a.status!=='published'?`<div class="notice" style="margin-bottom:14px"><strong>Draft preview.</strong> Only administrators can see this until it is published.</div>`:''}<div class="eyebrow">${esc(a.category)} · ${esc(a.county)}</div><h1>${esc(a.name)}.</h1><p class="sub">${esc(a.tagline||'')}</p><div class="photo attraction-hero" style="${bgStyle(imgs[0])}"></div>${imgs.length>1?`<div class="thumb-row">${imgs.slice(1,4).map(i=>`<div class="photo" style="${bgStyle(i)}"></div>`).join('')}</div>`:''}<div class="grid grid-3 facts">${fact('Landscape',a.terrain)}${fact('Best time to go',a.bestTime)}${fact('Climate',a.climate)}</div><div class="grid grid-2" style="margin-top:20px"><div class="card pad"><h2>Why visit</h2><p>${esc(a.description||'')}</p><div class="actions"><a class="btn" href="${findHref}">Find nearby stays</a><button class="btn btn-outline" type="button" data-fav="${esc(a.id)}" data-label="♡ Save attraction">♡ Save attraction</button></div></div><div class="card pad"><h2>Nearby</h2><div class="kpi"><strong>Accommodation</strong><span class="small">${stays.length} recommended stay${stays.length===1?'':'s'}</span></div><div class="kpi" style="margin-top:10px"><strong>Best for</strong><span class="small">${esc(a.bestFor||'Sightseeing and day trips')}</span></div></div></div><h2 style="margin-top:34px">Stays near ${esc(a.name)}</h2>${stays.length?`<div class="grid grid-3">${stays.slice(0,3).map(l=>`<article class="card"><div class="photo" style="${bgStyle(coverOf(l))}"></div><div class="pad"><h3>${esc(l.name)}</h3><p class="small">${esc(l.location)} · KSh ${Math.round(l.price).toLocaleString('en-KE')}/night</p><a class="btn btn-sm" href="details.html?id=${encodeURIComponent(l.id)}">View stay</a></div></article>`).join('')}</div>`:`<div class="card pad empty"><p class="small">No approved stays near this attraction yet.</p></div>`}`;
+  root.innerHTML=`${a.status!=='published'?`<div class="notice" style="margin-bottom:14px"><strong>Draft preview.</strong> Only administrators can see this until it is published.</div>`:''}<div class="eyebrow">${esc(a.category)} · ${esc(a.county)}</div><h1>${esc(a.name)}.</h1><p class="sub">${esc(a.tagline||'')}</p><div class="photo attraction-hero" style="${bgStyle(imgs[0])}"></div>${imgs.length>1?`<div class="thumb-row">${imgs.slice(1,4).map(i=>`<div class="photo" style="${bgStyle(i)}"></div>`).join('')}</div>`:''}<div class="grid grid-3 facts">${fact('Landscape',a.terrain)}${fact('Best time to go',a.bestTime)}${fact('Climate',a.climate)}</div><div class="grid grid-2" style="margin-top:20px"><div class="card pad"><h2>Why visit</h2><p>${esc(a.description||'')}</p><div class="actions"><a class="btn" href="${findHref}">Find nearby stays</a><button class="btn btn-outline" type="button" data-fav="${esc(a.id)}" data-label="♡ Save attraction">♡ Save attraction</button></div></div><div class="card pad"><h2>Nearby</h2><div class="kpi"><strong>Accommodation</strong><span class="small">${stays.length} recommended stay${stays.length===1?'':'s'}</span></div><div class="kpi" style="margin-top:10px"><strong>Best for</strong><span class="small">${esc(a.bestFor||'Sightseeing and day trips')}</span></div></div></div>${hasGeo(a)?`<h2 style="margin-top:34px">On the map</h2><div class="detail-map" id="attrMap" aria-label="Map of ${esc(a.name)} and nearby stays"></div>`:''}<div class="detail-card-heading" style="margin-top:34px"><h2>Stays near ${esc(a.name)}</h2>${stays.length>3?`<a class="home-link" href="${findHref}">View all ${stays.length} stays →</a>`:''}</div>${stays.length?`<div class="grid grid-3">${stays.slice(0,3).map(l=>`<article class="card"><div class="photo" style="${bgStyle(coverOf(l))}"></div><div class="pad"><h3>${esc(l.name)}</h3><p class="small">${esc(l.location)} · KSh ${Math.round(l.price).toLocaleString('en-KE')}/night${l._km!==undefined?' · <strong>'+fmtKm(l._km)+' away</strong>':''}</p><a class="btn btn-sm" href="details.html?id=${encodeURIComponent(l.id)}">View stay</a></div></article>`).join('')}</div>`:`<div class="card pad empty"><p class="small">No approved stays near this attraction yet.</p></div>`}`;
+  const am=document.querySelector('#attrMap'); if(am) mountNearMap(am,attrPin(a),stays.slice(0,8).map(stayPin));
 }
 
 /* ---------- host: manage listings, edit listing, dashboard numbers ---------- */
@@ -372,6 +407,7 @@ function fillListingForm(form,l){
   const set=(n,v)=>{ const el=form.querySelector(`[name="${n}"]`); if(el) el.value=v??''; };
   ['name','location','price','description','rules'].forEach(n=>set(n,l[n]));
   set('amenities',(l.amenities||[]).join(', '));
+  const pm=form.querySelector('[data-pick-map]'); if(pm&&pm.__pick) pm.__pick.set(l.lat,l.lng);
   const sel=form.querySelector('[name="type"]');
   if(sel){ if(l.type && ![...sel.options].some(o=>o.value===l.type||o.text===l.type)) sel.add(new Option(l.type,l.type)); sel.value=l.type||sel.value; }
   const st=form.querySelector('[name="status"]'); if(st) st.value=l.status;
@@ -402,8 +438,10 @@ async function handleListing(form){
   if(f.description.length<10) return formMessage(form,'Please add a short description (at least 10 characters).');
   let imgs; try{ imgs=await readImages(form); }catch(e){ return formMessage(form,e.message); }
   const list=getListings(), region=regionOf(`${f.location} ${f.name}`);
+  const geo=geoFromForm(form,`${f.location} ${f.name}`,list.find(x=>x.id===form.dataset.id));
+  if(geo.error) return formMessage(form,geo.error);
   if(mode==='host-add'){
-    const l=Object.assign({id:uniqueId(f.name,list.map(x=>x.id)),region,rating:0,reviews:0,score:78,bookings:0,status:'pending',ownerId:s.id,hostName:s.name,submitted:todayISO(),images:[]},f);
+    const l=Object.assign({id:uniqueId(f.name,list.map(x=>x.id)),region,rating:0,reviews:0,score:78,bookings:0,status:'pending',ownerId:s.id,hostName:s.name,submitted:todayISO(),images:[]},f,geo);
     l.images=imgs.length?imgs:defaultImages(l);
     list.unshift(l);
     if(!saveListings(list)) return formMessage(form,QUOTA_MSG);
@@ -413,9 +451,11 @@ async function handleListing(form){
   if(!l) return formMessage(form,'This listing no longer exists.');
   if(mode==='host-edit' && !canEditListing(l)) return formMessage(form,'You can only edit your own listings.');
   if(mode==='admin-edit' && s.role!=='admin') return formMessage(form,'Only administrators can do that.');
-  Object.assign(l,f,{region:region||l.region,updated:Date.now()});
+  const identityChanged=l.status==='approved' && (l.name!==f.name || l.location!==f.location || l.type!==f.type);
+  Object.assign(l,f,geo,{region:region||l.region,updated:Date.now()});
   if(imgs.length) l.images=imgs;
   let msg='Listing changes saved';
+  if(mode==='host-edit' && identityChanged){ l.status='review'; msg='Saved. The name, location or type changed, so the listing is hidden until an admin re-approves it.'; }
   if(mode==='host-edit' && l.status==='rejected'){ l.status='pending'; msg='Changes saved and listing resubmitted for review'; }
   if(mode==='admin-edit'){ const st=v('status'); if(STATUS[st]) l.status=st; msg='Listing updated'; }
   if(!saveListings(list)) return formMessage(form,QUOTA_MSG);
@@ -437,7 +477,7 @@ function initAdminListings(){
         +(pend?`<button type="button" class="btn btn-danger btn-sm" data-set="rejected" data-id="${id}">Reject</button> `:'')
         +(l.status==='approved'?`<button type="button" class="btn btn-danger btn-sm" data-set="suspended" data-id="${id}">Suspend</button> `:'')
         +`<button type="button" class="btn btn-outline btn-sm" data-edit="${id}">${l.status==='review'?'Review':'Edit'}</button>`;
-      return `<tr><td><strong>${esc(l.name)}</strong></td><td>${hostCell(l)}</td><td>${esc(l.location)}</td><td>${shortDate(l.submitted||todayISO())}</td><td>${badge(l.status)}</td><td class="row-actions">${acts}</td></tr>`;
+      return `<tr><td><strong>${esc(l.name)}</strong></td><td>${hostCell(l)}</td><td>${esc(l.location)}</td><td>${shortDate(l.submitted||todayISO())}</td><td>${badge(l.status)}${integrityWarnings(l).length?` <span class="status warning" title="${esc(integrityWarnings(l).map(c=>c.text).join(' | '))}">${integrityWarnings(l).length} check${integrityWarnings(l).length>1?'s':''}</span>`:''}</td><td class="row-actions">${acts}</td></tr>`;
     }).join('')||`<tr><td colspan="6" class="small" style="padding:24px">No listings yet.</td></tr>`;
     const c=st=>all.filter(l=>l.status===st).length;
     setStat('pending',c('pending')+c('review')); setStat('approved',c('approved')); setStat('rejected',c('rejected')+c('suspended'));
@@ -446,6 +486,7 @@ function initAdminListings(){
     const set=e.target.closest('[data-set]'), ed=e.target.closest('[data-edit]');
     if(set){
       const list=getListings(), l=list.find(x=>x.id===set.dataset.id); if(!l) return;
+      if(set.dataset.set==='approved'){ const w=integrityWarnings(l); if(w.length && !confirm(`Integrity checks found ${w.length} issue(s):\n\n• ${w.map(c=>c.text).join('\n• ')}\n\nApprove anyway?`)) return; }
       l.status=set.dataset.set; l.updated=Date.now();
       if(saveListings(list)){ draw(); showToast(`${l.name}: ${STATUS[l.status][1].toLowerCase()}`); }
     }
@@ -454,7 +495,9 @@ function initAdminListings(){
       fillListingForm(form,l); form.querySelectorAll('input[type=file]').forEach(i=>i.value='');
       document.querySelector('#adminListingTitle').textContent=`Edit “${l.name}”`;
       const c=document.querySelector('#adminListingCover'); if(c) c.style.backgroundImage=`url('${coverOf(l)}')`;
-      panel.hidden=false; panel.scrollIntoView({behavior:'smooth',block:'start'});
+      document.querySelector('#integrityList').innerHTML=integrityChecks(l).map(c=>`<li class="${c.level}">${c.level==='ok'?'✔':'⚠'} ${esc(c.text)}</li>`).join('');
+      panel.hidden=false; { const pm=form.querySelector('[data-pick-map]'); if(pm&&pm.__pick) pm.__pick.refresh(); }
+      panel.scrollIntoView({behavior:'smooth',block:'start'});
     }
   });
   document.querySelector('#adminListingCancel')?.addEventListener('click',()=>{ panel.hidden=true; });
@@ -466,7 +509,7 @@ function initAdminListings(){
 function initAdminAttractions(){
   const body=document.querySelector('[data-admin-attractions]'); if(!body) return;
   const form=document.querySelector('#attractionForm'), title=document.querySelector('#attractionFormTitle'), cancel=document.querySelector('#attractionCancel'), cover=document.querySelector('#attractionCover');
-  const reset=()=>{ form.reset(); delete form.dataset.id; title.textContent='Add attraction'; cancel.hidden=true; form.querySelector('[type=submit]').textContent='Save attraction'; if(cover){ cover.style.backgroundImage=''; cover.textContent='Choose a photo or leave blank for a landscape-matched default'; } };
+  const reset=()=>{ form.reset(); const pm=form.querySelector('[data-pick-map]'); if(pm&&pm.__pick) pm.__pick.set('',''); delete form.dataset.id; title.textContent='Add attraction'; cancel.hidden=true; form.querySelector('[type=submit]').textContent='Save attraction'; if(cover){ cover.style.backgroundImage=''; cover.textContent='Choose a photo or leave blank for a landscape-matched default'; } };
   const draw=()=>{
     body.innerHTML=getAttractions().map(a=>{ const id=esc(a.id), pub=a.status==='published';
       return `<tr><td><strong>${esc(a.name)}</strong></td><td>${esc(a.county)}</td><td>${esc(a.category)}</td><td>${nearbyStays(a).length}</td><td>${badge(a.status)}</td><td class="row-actions"><button type="button" class="btn btn-outline btn-sm" data-aedit="${id}">Edit</button> <button type="button" class="btn ${pub?'btn-outline':''} btn-sm" data-atoggle="${id}">${pub?'Unpublish':'Publish'}</button> <button type="button" class="link-danger" data-adel="${id}">Delete</button></td></tr>`; }).join('')||`<tr><td colspan="6" class="small" style="padding:24px">No attractions yet.</td></tr>`;
@@ -477,6 +520,7 @@ function initAdminAttractions(){
       const a=attractionById(ed.dataset.aedit); if(!a) return;
       const set=(n,v)=>{ const el=form.querySelector(`[name="${n}"]`); if(el) el.value=v??''; };
       ['name','county','category','tagline','description','terrain','bestTime'].forEach(n=>set(n,a[n]));
+      const pm=form.querySelector('[data-pick-map]'); if(pm&&pm.__pick){ pm.__pick.set(a.lat,a.lng); pm.__pick.refresh(); }
       form.dataset.id=a.id; title.textContent=`Edit ${a.name}`; cancel.hidden=false; form.querySelector('[type=submit]').textContent='Save changes';
       if(cover){ cover.style.backgroundImage=`url('${coverOf(a)}')`; cover.style.backgroundSize='cover'; cover.style.backgroundPosition='center'; cover.textContent=''; }
       form.scrollIntoView({behavior:'smooth',block:'center'});
@@ -495,12 +539,13 @@ async function handleAttraction(form){
   if(!f.county) return formMessage(form,'Please enter the county.');
   let imgs; try{ imgs=await readImages(form,3); }catch(e){ return formMessage(form,e.message); }
   const list=getAttractions(), region=regionOf(`${f.county} ${f.name}`)||CATEGORY_REGION[f.category]||null;
+  const geo=geoFromForm(form,`${f.county} ${f.name}`,list.find(x=>x.id===form.dataset.id)); if(geo.error) return formMessage(form,geo.error);
   let msg;
   if(form.dataset.id){
     const a=list.find(x=>x.id===form.dataset.id); if(!a) return formMessage(form,'This attraction no longer exists.');
-    Object.assign(a,f,{region:regionOf(`${f.county} ${f.name}`)||a.region||region}); if(imgs.length) a.images=imgs; msg='Attraction updated';
+    Object.assign(a,f,geo,{region:regionOf(`${f.county} ${f.name}`)||a.region||region}); if(imgs.length) a.images=imgs; msg='Attraction updated';
   } else {
-    const a=Object.assign({id:uniqueId(f.name,list.map(x=>x.id)),region,bestFor:'',climate:'',images:[],status:'draft'},f);
+    const a=Object.assign({id:uniqueId(f.name,list.map(x=>x.id)),region,bestFor:'',climate:'',images:[],status:'draft'},f,geo);
     a.images=imgs.length?imgs:defaultImages(a); list.push(a); msg='Attraction saved as draft';
   }
   if(!saveAttractions(list)) return formMessage(form,QUOTA_MSG);
@@ -563,7 +608,7 @@ const saveAllBookings = a=>putLS(K.allbk,JSON.stringify(a));
 const userBookings = ()=>{ const s=getSession(); return s?getAllBookings().filter(b=>b.guestId===s.id):[]; };
 const hostBookings = ()=>{ const ids=new Set(hostListings().map(l=>l.id)); return getAllBookings().filter(b=>ids.has(b.stayId)); };
 const addDays = (d,n)=>{ const t=new Date(d+'T00:00:00Z'); t.setUTCDate(t.getUTCDate()+n); return t.toISOString().slice(0,10); };
-const bookingState = b=>b.status==='cancelled'?'cancelled':(b.checkout<todayISO()?'completed':'confirmed');
+const bookingState = b=>b.status==='cancelled'?'cancelled':((b.completed||b.checkout<todayISO())?'completed':'confirmed');
 const BK_BADGE = { confirmed:'<span class="status success">Confirmed</span>', completed:'<span class="status info">Completed</span>', cancelled:'<span class="status danger">Cancelled</span>' };
 const fmtRange = b=>`${fmtDate(b.checkin)} – ${fmtDate(b.checkout)}`;
 const fmtStamp = t=>new Date(t).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
@@ -610,12 +655,13 @@ function initTouristBookings(){
   const draw=()=>{
     const list=userBookings().sort((a,b)=>b.created-a.created), today=todayISO();
     body.innerHTML=list.length?list.map(b=>{ const st=bookingState(b);
-      return `<tr><td><strong>${esc(b.stay)}</strong><div class="small">${esc(b.place)} · ${esc(b.ref)}</div></td><td>${fmtRange(b)}</td><td>${esc(parseInt(b.guests)||1)}</td><td>${money(b.total)}</td><td>${BK_BADGE[st]}</td><td class="row-actions"><a class="home-link" href="confirmation.html?ref=${encodeURIComponent(b.ref)}">View</a>${st==='completed'?' · <a class="home-link" href="review.html">Review</a>':''}${st==='confirmed'&&b.checkin>=today?` · <button type="button" class="link-danger" data-cancel="${esc(b.ref)}">Cancel</button>`:''}</td></tr>`; }).join('')
+      return `<tr><td><strong>${esc(b.stay)}</strong><div class="small">${esc(b.place)} · ${esc(b.ref)}</div></td><td>${fmtRange(b)}</td><td>${esc(parseInt(b.guests)||1)}</td><td>${money(b.total)}</td><td>${BK_BADGE[st]}</td><td class="row-actions"><a class="home-link" href="confirmation.html?ref=${encodeURIComponent(b.ref)}">View</a>${st==='completed'?` · <a class="home-link" href="review.html?ref=${encodeURIComponent(b.ref)}">${reviewsFor(b.ref).some(r=>r.dir==='guest')?'Your review':'Review'}</a>`:''}${st==='confirmed'?` · <button type="button" class="link-danger" style="color:var(--forest)" data-complete="${esc(b.ref)}" title="Demo shortcut: pretend the stay has finished so you can try reviews">Mark completed (demo)</button>`:''}${st==='confirmed'&&b.checkin>=today?` · <button type="button" class="link-danger" data-cancel="${esc(b.ref)}">Cancel</button>`:''} · <a class="home-link" href="messages.html?stay=${encodeURIComponent(b.stayId)}">Message host</a> · <a class="home-link" href="report.html?ref=${encodeURIComponent(b.ref)}">Report</a></td></tr>`; }).join('')
       :`<tr><td colspan="6" class="small" style="padding:24px">You have no bookings yet. <a class="home-link" href="search.html">Find a stay</a></td></tr>`;
     const n=k=>list.filter(b=>bookingState(b)===k).length, set=(k,v)=>document.querySelectorAll(`[data-bind="${k}"]`).forEach(e=>e.textContent=v);
     set('upcoming',`${n('confirmed')} trip${n('confirmed')===1?'':'s'}`); set('history',`${n('completed')} stay${n('completed')===1?'':'s'}`);
   };
-  body.addEventListener('click',e=>{ const b=e.target.closest('[data-cancel]'); if(!b || !confirm('Cancel this booking? Your payment will be refunded.')) return; if(cancelBooking(b.dataset.cancel,'guest')){ draw(); showToast('Booking cancelled'); } });
+  body.addEventListener('click',e=>{ const c=e.target.closest('[data-complete]'); if(c){ const all=getAllBookings(), b=all.find(x=>x.ref===c.dataset.complete); if(b){ b.completed=true; b.completedAt=Date.now(); if(saveAllBookings(all)){ draw(); showToast('Stay marked completed (demo). You can now review it.'); } } return; }
+    const b=e.target.closest('[data-cancel]'); if(!b || !confirm('Cancel this booking? Your payment will be refunded.')) return; if(cancelBooking(b.dataset.cancel,'guest')){ draw(); showToast('Booking cancelled'); } });
   draw();
 }
 
@@ -625,7 +671,7 @@ function initHostBookings(){
   const draw=()=>{
     const list=hostBookings().sort((a,b)=>b.created-a.created);
     body.innerHTML=list.length?list.map(b=>{ const st=bookingState(b);
-      return `<tr><td><strong>${esc(b.guestName)}</strong><div class="small">${esc(b.guestEmail||'')}${b.phone?' · '+esc(b.phone):''}</div></td><td>${esc(b.stay)}<div class="small">${esc(b.ref)}</div></td><td>${fmtRange(b)}</td><td>${money(b.total)}<div class="small">${b.nights||nightsBetween(b.checkin,b.checkout)} nights · ${esc(b.guests)}</div></td><td>${BK_BADGE[st]}</td><td>${st==='confirmed'?`<button type="button" class="btn btn-outline btn-sm" data-cancel="${esc(b.ref)}">Cancel</button>`:''}</td></tr>`; }).join('')
+      return `<tr><td><strong>${esc(b.guestName)}</strong><div class="small">${esc(b.guestEmail||'')}${b.phone?' · '+esc(b.phone):''}</div></td><td>${esc(b.stay)}<div class="small">${esc(b.ref)}</div></td><td>${fmtRange(b)}</td><td>${money(b.total)}<div class="small">${b.nights||nightsBetween(b.checkin,b.checkout)} nights · ${esc(b.guests)}</div></td><td>${BK_BADGE[st]}</td><td class="row-actions">${st==='confirmed'?`<button type="button" class="btn btn-outline btn-sm" data-cancel="${esc(b.ref)}">Cancel</button> `:''}${st==='completed'?'<a class="home-link" href="host-reviews.html">Review guest</a> · ':''}<a class="home-link" href="host-messages.html?stay=${encodeURIComponent(b.stayId)}&guest=${encodeURIComponent(b.guestId)}">Message</a> · <a class="home-link" href="host-report-incident.html?ref=${encodeURIComponent(b.ref)}">Report</a></td></tr>`; }).join('')
       :`<tr><td colspan="6" class="small" style="padding:24px">No bookings yet. When a guest books one of your stays it appears here straight away.</td></tr>`;
     const n=k=>list.filter(b=>bookingState(b)===k).length;
     setStat('bk-upcoming',n('confirmed')); setStat('bk-done',n('completed')); setStat('bk-cancelled',n('cancelled'));
@@ -729,6 +775,7 @@ function initAdminDashboard(){
   const all=getListings(), p=all.filter(l=>l.status==='pending'||l.status==='review').length, accs=getAccounts(), B=getAllBookings();
   setStat('admin-total',all.length); setStat('admin-pending-sub',`${p} pending approval`); setStat('admin-pending',`${p} pending`);
   setStat('admin-users',accs.length); setStat('admin-users-sub',`${accs.filter(a=>a.role==='host').length} hosts · ${accs.filter(a=>a.role==='tourist').length} tourists`);
+  setStat('admin-inc',getIncidents().length); setStat('admin-inc-sub',`${getIncidents().filter(i=>i.status==='open').length} open · ${getIncidents().filter(i=>i.severity==='critical'&&(i.status==='open'||i.status==='investigating')).length} critical`); setStat('admin-flagged',`${getReviews().filter(r=>r.flagged&&r.modStatus==='ok').length} flagged`); setStat('admin-inc-open',`${getIncidents().filter(i=>i.status==='open'||i.status==='investigating').length} open`);
   setStat('admin-bookings',B.length); setStat('admin-bookings-sub',`${B.filter(b=>bookingState(b)==='confirmed').length} upcoming`);
   const body=document.querySelector('[data-admin-recent]');
   if(body){
@@ -738,14 +785,567 @@ function initAdminDashboard(){
   }
 }
 
+/* ======================================================================
+   TRUST & SAFETY
+   · verified reviews (completed bookings only) with simultaneous reveal
+   · admin review moderation
+   · critical incident reporting
+   · listing integrity checks
+   ====================================================================== */
+const REVIEW_WINDOW_DAYS = 14;
+const SEED_REVIEWS = [
+  {id:'rv-seed-1',seed:true,ref:'seed-1',stayId:'karura-house',dir:'guest',authorName:'Amina Wanjiku',rating:5,text:'Beautiful and peaceful stay. Clean, comfortable and a thoughtful host.',created:Date.parse('2026-08-05'),modStatus:'ok'},
+  {id:'rv-seed-2',seed:true,ref:'seed-2',stayId:'high-rise',dir:'guest',authorName:'Daniel Mwangi',rating:4,text:'Great location and easy check-in. The city views at sunset are lovely.',created:Date.parse('2026-08-02'),modStatus:'ok'},
+  {id:'rv-seed-3',seed:true,ref:'seed-3',stayId:'high-rise',dir:'guest',authorName:'John Karanja',rating:1,text:'Payment complaint included. The refund took too long and nobody replied.',created:Date.parse('2026-09-21'),modStatus:'ok',flagged:true,flagReason:'Off-topic: payment complaint rather than a stay review'},
+  {id:'rv-seed-4',seed:true,ref:'seed-4',stayId:'fernside-retreat',dir:'guest',authorName:'Grace Achieng',rating:5,text:'Lovely garden and an attentive host. We never wanted to leave.',created:Date.parse('2026-07-28'),modStatus:'ok'},
+  {id:'rv-seed-5',seed:true,ref:'seed-5',stayId:'mara-savannah-camp',dir:'guest',authorName:'Joy Cherono',rating:5,text:'Waking up to the savannah was unforgettable. The game drives were superb.',created:Date.parse('2026-09-10'),modStatus:'ok'},
+  {id:'rv-seed-6',seed:true,ref:'seed-6',stayId:'lamu-old-town-retreat',dir:'guest',authorName:'Peter Kimani',rating:5,text:'Quiet lanes, warm sea and a beautiful house. Highly recommended.',created:Date.parse('2026-09-18'),modStatus:'ok'},
+  {id:'rv-seed-7',seed:true,ref:'seed-7',stayId:'mt-kenya-forest-lodge',dir:'guest',authorName:'Sarah Njeri',rating:5,text:'The fireplace after a long hike was perfect. Peaks right outside the window.',created:Date.parse('2026-09-25'),modStatus:'ok'}
+];
+const SEED_INCIDENTS = [
+  {id:'INC-0128',sample:true,reporterId:'sample',reporterName:'Sample tourist',reporterRole:'tourist',stayId:'karura-house',bookingRef:'',againstName:'Karura House',againstId:'host-wanjiku',type:'Physical safety or assault',severity:'critical',description:'A guest reported feeling unsafe after an unknown person entered the compound at night. No injuries.',evidence:[],status:'open',created:Date.parse('2026-10-05'),notes:[],resolution:''},
+  {id:'INC-0127',sample:true,reporterId:'sample',reporterName:'Sample host',reporterRole:'host',stayId:'high-rise',bookingRef:'',againstName:'Guest #774',againstId:'',type:'No-show',severity:'standard',description:'Guest did not arrive and did not respond to messages. Nights could not be re-sold.',evidence:[],status:'investigating',created:Date.parse('2026-10-04'),notes:[],resolution:''},
+  {id:'INC-0126',sample:true,reporterId:'sample',reporterName:'Sample tourist',reporterRole:'tourist',stayId:'high-rise',bookingRef:'',againstName:'High Rise',againstId:'host-daniel',type:'Misleading listing',severity:'standard',description:'The listing photos showed a balcony that the apartment does not have.',evidence:[],status:'resolved',created:Date.parse('2026-10-03'),notes:[{t:Date.parse('2026-10-04'),by:'Admin',text:'Host updated the photos.'}],resolution:'Thank you. The host has corrected the photos and the listing was re-checked.'}
+];
+const CRITICAL_TYPES = ['Theft','Abuse or harassment','Physical safety or assault'];
+const TOURIST_INCIDENT_TYPES = [...CRITICAL_TYPES,'Property damage','Fraud / payment issue','Misleading listing','House rule issue','Other'];
+const HOST_INCIDENT_TYPES = [...CRITICAL_TYPES,'Property damage','Fraudulent booking','No-show','House rule breach','Other'];
+const INC_STATUS = { open:['danger','Open'], investigating:['warning','Investigating'], resolved:['success','Resolved'], dismissed:['info','Dismissed'] };
+const incBadge = i=>`<span class="status ${INC_STATUS[i.status][0]}">${INC_STATUS[i.status][1]}</span>`;
+const sevBadge = i=>i.severity==='critical'?'<span class="status danger">Critical</span>':'<span class="status info">Standard</span>';
+
+const getReviews = ()=>{ let v=readJSON(ls,K.reviews,null); if(!Array.isArray(v)){ v=JSON.parse(JSON.stringify(SEED_REVIEWS)); v.forEach(r=>{ r.hostId=SAMPLE_OWNER[r.stayId]||''; }); putLS(K.reviews,JSON.stringify(v)); } return v; };
+const saveReviews = a=>putLS(K.reviews,JSON.stringify(a));
+const getIncidents = ()=>{ let v=readJSON(ls,K.incidents,null); if(!Array.isArray(v)){ v=JSON.parse(JSON.stringify(SEED_INCIDENTS)); putLS(K.incidents,JSON.stringify(v)); } return v; };
+const saveIncidents = a=>putLS(K.incidents,JSON.stringify(a));
+const firstName = n=>String(n||'Guest').trim().split(/\s+/)[0];
+const longDate = t=>new Date(t).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+const bookingByRef = ref=>getAllBookings().find(b=>b.ref===ref);
+const reviewsFor = ref=>getReviews().filter(r=>r.ref===ref);
+const completedAtOf = b=>b.completedAt||Date.parse(b.checkout+'T12:00:00Z');
+const windowEnd = b=>completedAtOf(b)+REVIEW_WINDOW_DAYS*864e5;
+const windowOpen = b=>Date.now()<=windowEnd(b);
+
+/* SIMULTANEOUS REVEAL: neither side's review is visible until both have submitted, or the window has closed */
+function isRevealed(ref){
+  const rs=reviewsFor(ref); if(!rs.length) return false;
+  if(rs.some(r=>r.seed)) return true;
+  if(rs.some(r=>r.dir==='guest') && rs.some(r=>r.dir==='host')) return true;
+  const b=bookingByRef(ref); return !!b && Date.now()>windowEnd(b);
+}
+const publicReviews = stayId=>getReviews().filter(r=>r.stayId===stayId && r.dir==='guest' && r.modStatus==='ok' && isRevealed(r.ref)).sort((a,b)=>b.created-a.created);
+function reviewVisibility(r){
+  if(r.modStatus==='removed') return ['danger','Removed'];
+  if(r.modStatus==='hidden') return ['danger','Hidden by admin'];
+  if(!isRevealed(r.ref)) return ['warning','Sealed until reveal'];
+  return ['success','Published'];
+}
+/* listing rating = sample base + revealed, un-moderated guest reviews */
+function recomputeRating(stayId){
+  const L=getListings(), l=L.find(x=>x.id===stayId); if(!l) return;
+  if(l.baseReviews===undefined){ l.baseReviews=l.reviews||0; l.baseRating=l.rating||0; }
+  const rs=getReviews().filter(r=>r.stayId===stayId && r.dir==='guest' && !r.seed && r.modStatus==='ok' && isRevealed(r.ref));
+  const tot=l.baseReviews+rs.length, sum=rs.reduce((t,r)=>t+r.rating,0), rating=tot?Math.round((l.baseRating*l.baseReviews+sum)/tot*10)/10:0;
+  if(l.reviews!==tot || l.rating!==rating){ l.reviews=tot; l.rating=rating; saveListings(L); }
+}
+function syncRatings(){ new Set(getReviews().filter(r=>!r.seed).map(r=>r.stayId)).forEach(recomputeRating); }
+const starPicker = ()=>`<div class="star-picker" data-stars>${[1,2,3,4,5].map(n=>`<button type="button" class="star-btn" data-star="${n}" aria-label="${n} star${n>1?'s':''}">★</button>`).join('')}<input type="hidden" name="rating"></div>`;
+function bindStars(root){
+  if(root.dataset.starsBound) return; root.dataset.starsBound='1';
+  root.addEventListener('click',e=>{ const b=e.target.closest('[data-star]'); if(!b) return; const g=b.closest('[data-stars]'), n=+b.dataset.star; g.querySelector('[name=rating]').value=n; g.querySelectorAll('[data-star]').forEach(x=>x.classList.toggle('active',+x.dataset.star<=n)); });
+}
+const CAT_SCORE = {Excellent:5,Good:4,Fair:3};
+const sealedNote = (who,b)=>`Sealed. It will be revealed when ${who} submits theirs, or on ${longDate(windowEnd(b))} when the review window closes.`;
+
+/* ---------- tourist: write a verified review ---------- */
+function initReviewPage(){
+  const root=document.querySelector('[data-review-page]'); if(!root) return;
+  bindStars(root);
+  const ref=new URLSearchParams(location.search).get('ref'), mine=userBookings();
+  const head='<div class="eyebrow">Verified review</div><h1>Leave a review.</h1>';
+  if(!ref){
+    const done=mine.filter(b=>bookingState(b)==='completed');
+    root.innerHTML=`${head}<p class="sub">Only completed stays can be reviewed.</p>`+(done.length?`<div class="grid grid-2" style="margin-top:22px">${done.map(b=>`<div class="card pad"><h3>${esc(b.stay)}</h3><p class="small">${fmtRange(b)} · ${esc(b.ref)}</p><a class="btn btn-sm" href="review.html?ref=${encodeURIComponent(b.ref)}">${reviewsFor(b.ref).some(r=>r.dir==='guest')?'View your review':'Write review'}</a></div>`).join('')}</div>`:`<div class="card pad empty" style="margin-top:22px"><p class="small">You have no completed stays yet. After your stay you can review it here. <a class="home-link" href="bookings.html">My bookings</a></p></div>`);
+    return;
+  }
+  const b=mine.find(x=>x.ref===ref);
+  if(!b){ root.innerHTML=`${head}<div class="card pad empty" style="margin-top:22px"><p class="small">We could not find that booking in your account. <a class="home-link" href="review.html">Back</a></p></div>`; return; }
+  const l=listingById(b.stayId), rs=reviewsFor(ref), own=rs.find(r=>r.dir==='guest'), other=rs.find(r=>r.dir==='host'), st=bookingState(b), hostName=(getAccounts().find(a=>a.id===b.hostId)||{name:'the host'}).name;
+  const left=`<div><div class="photo" style="min-height:230px;${bgStyle(l?coverOf(l):IMG.nairobiApt)}"></div><h3 style="margin-top:12px">${esc(b.stay)}</h3><div class="small">${esc(b.place)} · ${fmtRange(b)}</div></div>`;
+  let right;
+  if(st==='cancelled') right='<div class="notice">This booking was cancelled, so it cannot be reviewed.</div>';
+  else if(st!=='completed') right='<div class="notice">Only completed bookings can submit a review. You can review this stay once it is finished.</div>';
+  else if(own){
+    const shown=isRevealed(ref);
+    right=`<div class="grid"><div><div class="eyebrow">Your review</div><div class="rating">${stars(own.rating)}</div><p>${esc(own.text)}</p></div>${shown?`<div class="notice"><strong>Revealed.</strong> Your review is now public on the listing.</div>${other?`<div class="card pad"><div class="eyebrow">${esc(firstName(hostName))}'s review of you</div><div class="rating">${stars(other.rating)}</div><p>${esc(other.text)}</p></div>`:''}`:`<div class="notice"><strong>Sealed.</strong> ${sealedNote(esc(firstName(hostName)),b)}</div>`}</div>`;
+  }
+  else if(!windowOpen(b)) right=`<div class="notice">The review window for this stay closed on ${longDate(windowEnd(b))}.</div>`;
+  else right=`<div class="grid" data-review-form data-ref="${esc(ref)}"><div class="field"><label>OVERALL RATING</label>${starPicker()}</div><div class="field"><label>YOUR REVIEW</label><textarea name="text" placeholder="How was your stay?"></textarea></div><div class="grid grid-2">${['Cleanliness','Location','Communication','Value'].map(c=>`<div class="field"><label>${c.toUpperCase()}</label><select name="c-${c.toLowerCase()}"><option>Excellent</option><option>Good</option><option>Fair</option></select></div>`).join('')}</div><div class="notice">Verified stay. Reviews are sealed until the host has also submitted theirs (or ${REVIEW_WINDOW_DAYS} days pass), so neither side can influence the other. Public reviews show your first name only.</div><div class="form-error" role="alert" hidden></div><button type="button" class="btn" data-submit-review>Submit review</button></div>`;
+  root.innerHTML=`${head}<p class="sub">Your review is tied to this completed booking.</p><div class="card pad" style="max-width:930px;margin-top:22px"><div class="grid grid-2">${left}${right}</div></div>`;
+  const btn=root.querySelector('[data-submit-review]');
+  if(btn) btn.addEventListener('click',()=>submitGuestReview(root.querySelector('[data-review-form]')));
+}
+function submitGuestReview(box){
+  const err=m=>{ const e=box.querySelector('.form-error'); e.textContent=m; e.hidden=false; };
+  const s=getSession(), b=userBookings().find(x=>x.ref===box.dataset.ref), rating=+box.querySelector('[name=rating]').value, text=box.querySelector('[name=text]').value.trim();
+  if(!b || bookingState(b)!=='completed') return err('Only completed bookings can be reviewed.');
+  if(!windowOpen(b)) return err('The review window for this stay has closed.');
+  if(reviewsFor(b.ref).some(r=>r.dir==='guest')) return err('You have already reviewed this stay.');
+  if(!(rating>=1&&rating<=5)) return err('Please choose a star rating.');
+  if(text.length<10) return err('Please write at least a sentence (10 characters) about your stay.');
+  const cats={}; ['cleanliness','location','communication','value'].forEach(c=>cats[c]=CAT_SCORE[box.querySelector(`[name="c-${c}"]`).value]||5);
+  const all=getReviews(); all.push({id:'rv-'+Date.now().toString(36),ref:b.ref,stayId:b.stayId,hostId:b.hostId,guestId:s.id,dir:'guest',authorId:s.id,authorName:s.name,rating,text,cats,created:Date.now(),modStatus:'ok'});
+  if(!saveReviews(all)) return err(QUOTA_MSG);
+  recomputeRating(b.stayId); showToast('Review submitted'); initReviewPage();
+}
+
+/* ---------- host: reviews of my stays + reviewing guests ---------- */
+function initHostReviews(){
+  const root=document.querySelector('[data-host-reviews]'); if(!root) return;
+  bindStars(root);
+  const draw=()=>{
+    const s=getSession(), mineIds=new Set(hostListings().map(l=>l.id)), rs=getReviews().filter(r=>mineIds.has(r.stayId)&&r.dir==='guest'), B=hostBookings();
+    const rows=rs.slice().sort((a,b)=>b.created-a.created).map(r=>{
+      const [c,lbl]=reviewVisibility(r), shown=isRevealed(r.ref)&&r.modStatus==='ok', act=shown&&!r.flagged?`<button type="button" class="link-danger" data-flag="${esc(r.id)}">Report</button>`:(r.flagged?'<span class="small">Reported</span>':'');
+      return `<tr><td>${esc(firstName(r.authorName))}</td><td>${esc((listingById(r.stayId)||{}).name||'')}</td><td class="rating">${shown?stars(r.rating):'—'}</td><td>${shown?esc(r.text):`<em class="small">${r.modStatus==='ok'?'Hidden until you also review this guest, or the window closes.':'Not public.'}</em>`}</td><td>${shortDate(new Date(r.created).toISOString().slice(0,10))}</td><td><span class="status ${c}">${lbl}</span> ${act}</td></tr>`; }).join('');
+    const pend=B.filter(b=>bookingState(b)==='completed' && windowOpen(b) && !reviewsFor(b.ref).some(r=>r.dir==='host'));
+    const given=getReviews().filter(r=>r.dir==='host' && mineIds.has(r.stayId));
+    const pub=rs.filter(r=>r.modStatus==='ok'&&isRevealed(r.ref)), avg=pub.length?pub.reduce((t,r)=>t+r.rating,0)/pub.length:0;
+    root.innerHTML=`<div class="card table-wrap"><table><thead><tr><th>Guest</th><th>Property</th><th>Rating</th><th>Review</th><th>Date</th><th>Status</th></tr></thead><tbody>${rows||'<tr><td colspan="6" class="small" style="padding:24px">No guest reviews yet.</td></tr>'}</tbody></table></div>
+    <div class="grid grid-3" style="margin-top:18px"><div class="kpi"><strong>${avg?avg.toFixed(1):'—'}</strong><span class="small">Average of published reviews</span></div><div class="kpi"><strong>${pub.length}</strong><span class="small">Published reviews</span></div><div class="kpi"><strong>${pend.length}</strong><span class="small">Guests awaiting your review</span></div></div>
+    <h2 style="margin-top:30px">Review your guests</h2><p class="small">After a completed stay you can review the guest. Both reviews stay sealed until you have each submitted yours (or ${REVIEW_WINDOW_DAYS} days pass).</p>
+    <div class="grid grid-2" style="margin-top:12px">${pend.map(b=>`<div class="card pad" data-host-review data-ref="${esc(b.ref)}"><strong>${esc(b.guestName)}</strong><div class="small">${esc(b.stay)} · ${fmtRange(b)} · ${esc(b.ref)}</div><div class="field" style="margin-top:12px"><label>RATING</label>${starPicker()}</div><div class="field" style="margin-top:10px"><label>YOUR REVIEW OF THE GUEST</label><textarea name="text" placeholder="Communication, respect for house rules, care of the property…"></textarea></div><div class="form-error" role="alert" hidden></div><button type="button" class="btn btn-sm" style="margin-top:10px" data-submit-host-review>Submit review</button></div>`).join('')||'<div class="card pad empty"><p class="small">No completed stays are waiting for your review.</p></div>'}</div>
+    ${given.length?`<h3 style="margin-top:26px">Your reviews of guests</h3><div class="card table-wrap"><table><thead><tr><th>Guest</th><th>Stay</th><th>Rating</th><th>Status</th></tr></thead><tbody>${given.map(r=>{ const b=bookingByRef(r.ref); return `<tr><td>${esc(b?b.guestName:'Guest')}</td><td>${esc((listingById(r.stayId)||{}).name||'')}</td><td class="rating">${stars(r.rating)}</td><td>${isRevealed(r.ref)?'<span class="status success">Revealed</span>':'<span class="status warning">Sealed</span>'}</td></tr>`; }).join('')}</tbody></table></div>`:''}`;
+  };
+  root.addEventListener('click',e=>{
+    const f=e.target.closest('[data-flag]');
+    if(f){ const reason=(prompt('Why are you reporting this review? (optional)')||'').trim()||'Reported by host'; const all=getReviews(), r=all.find(x=>x.id===f.dataset.flag); if(!r) return; r.flagged=true; r.flagReason=reason; r.flaggedBy=getSession().id; if(saveReviews(all)){ draw(); showToast('Review reported to moderators'); } return; }
+    const sb=e.target.closest('[data-submit-host-review]'); if(!sb) return;
+    const box=sb.closest('[data-host-review]'), err=m=>{ const x=box.querySelector('.form-error'); x.textContent=m; x.hidden=false; };
+    const b=hostBookings().find(x=>x.ref===box.dataset.ref), rating=+box.querySelector('[name=rating]').value, text=box.querySelector('[name=text]').value.trim();
+    if(!b||bookingState(b)!=='completed') return err('Only completed stays can be reviewed.');
+    if(!windowOpen(b)) return err('The review window has closed.');
+    if(reviewsFor(b.ref).some(r=>r.dir==='host')) return err('You have already reviewed this guest.');
+    if(!(rating>=1&&rating<=5)) return err('Please choose a star rating.');
+    if(text.length<10) return err('Please write at least 10 characters.');
+    const all=getReviews(); all.push({id:'rv-'+Date.now().toString(36),ref:b.ref,stayId:b.stayId,hostId:b.hostId,guestId:b.guestId,dir:'host',authorId:getSession().id,authorName:getSession().name,rating,text,created:Date.now(),modStatus:'ok'});
+    if(!saveReviews(all)) return err(QUOTA_MSG);
+    recomputeRating(b.stayId); draw(); showToast(isRevealed(b.ref)?'Review submitted. Both reviews are now revealed.':'Review submitted. It stays sealed until the guest also reviews.');
+  });
+  draw();
+}
+
+/* ---------- admin: moderate reviews ---------- */
+function initAdminReviews(){
+  const body=document.querySelector('[data-admin-reviews]'); if(!body) return;
+  const filter=document.querySelector('#reviewFilter');
+  const draw=()=>{
+    const all=getReviews(), f=filter?filter.value:'all';
+    const rows=all.filter(r=>f==='all'||(f==='flagged'&&r.flagged&&r.modStatus==='ok')||(f==='sealed'&&!isRevealed(r.ref)&&r.modStatus==='ok')||(f==='hidden'&&r.modStatus!=='ok')).sort((a,b)=>(!!b.flagged-!!a.flagged)||b.created-a.created);
+    body.innerHTML=rows.map(r=>{ const [c,lbl]=reviewVisibility(r), id=esc(r.id);
+      const acts=(r.modStatus==='ok'?`<button type="button" class="btn btn-outline btn-sm" data-mod="hidden" data-id="${id}">Hide</button> `:`<button type="button" class="btn btn-outline btn-sm" data-mod="ok" data-id="${id}">Restore</button> `)+(r.modStatus!=='removed'?`<button type="button" class="btn btn-danger btn-sm" data-mod="removed" data-id="${id}">Remove</button> `:'')+(r.flagged?`<button type="button" class="link-danger" style="color:var(--forest)" data-mod="unflag" data-id="${id}">Dismiss flag</button>`:'');
+      return `<tr><td>${esc(r.authorName)}<div class="small">${r.dir==='guest'?'Guest → listing':'Host → guest'}${r.seed?' · sample':' · verified stay'}</div></td><td>${esc((listingById(r.stayId)||{}).name||'')}</td><td>${r.rating}</td><td>${esc(r.text)}${r.flagged?`<div class="small" style="color:var(--danger)">Reported: ${esc(r.flagReason||'')}</div>`:''}</td><td><span class="status ${c}">${lbl}</span></td><td class="row-actions">${acts}</td></tr>`; }).join('')||'<tr><td colspan="6" class="small" style="padding:24px">No reviews match.</td></tr>';
+    setStat('rv-flagged',all.filter(r=>r.flagged&&r.modStatus==='ok').length); setStat('rv-published',all.filter(r=>r.modStatus==='ok'&&isRevealed(r.ref)).length); setStat('rv-sealed',all.filter(r=>r.modStatus==='ok'&&!isRevealed(r.ref)).length); setStat('rv-removed',all.filter(r=>r.modStatus!=='ok').length);
+  };
+  body.addEventListener('click',e=>{
+    const b=e.target.closest('[data-mod]'); if(!b) return; const all=getReviews(), r=all.find(x=>x.id===b.dataset.id); if(!r) return;
+    const m=b.dataset.mod;
+    if(m==='removed' && !confirm('Remove this review permanently from the listing?')) return;
+    if(m==='unflag'){ r.flagged=false; } else { r.modStatus=m; if(m!=='ok') r.flagged=false; }
+    if(saveReviews(all)){ recomputeRating(r.stayId); draw(); showToast({hidden:'Review hidden',ok:'Review restored',removed:'Review removed',unflag:'Flag dismissed'}[m]); }
+  });
+  filter&&filter.addEventListener('change',draw); draw();
+}
+
+/* ---------- incidents (tourist + host report, admin handles) ---------- */
+function initIncidentForm(){
+  const form=document.querySelector('#incidentForm'); if(!form) return;
+  const s=getSession(), role=form.dataset.role, sel=form.querySelector('[name=booking]'), typeSel=form.querySelector('[name=type]'), params=new URLSearchParams(location.search);
+  const bks=(role==='host'?hostBookings():userBookings()).sort((a,b)=>b.created-a.created);
+  let opts=`<option value="">Not linked to a booking</option>`;
+  const stayParam=params.get('stay'), sl=stayParam&&listingById(stayParam); if(sl) opts+=`<option value="stay:${esc(sl.id)}">Listing: ${esc(sl.name)}</option>`;
+  opts+=bks.map(b=>`<option value="${esc(b.ref)}">${esc(b.ref)} · ${esc(b.stay)}${role==='host'?' · '+esc(b.guestName):''} · ${fmtRange(b)}</option>`).join('');
+  sel.innerHTML=opts; sel.value=params.get('ref')&&bks.some(b=>b.ref===params.get('ref'))?params.get('ref'):(sl?'stay:'+sl.id:'');
+  typeSel.innerHTML=(role==='host'?HOST_INCIDENT_TYPES:TOURIST_INCIDENT_TYPES).map(t=>`<option>${t}${CRITICAL_TYPES.includes(t)?' (critical)':''}</option>`).join('');
+  const note=form.querySelector('[data-critical-note]'), upd=()=>{ note.hidden=!/\(critical\)/.test(typeSel.value); }; typeSel.addEventListener('change',upd); upd();
+  drawMyIncidents();
+}
+function drawMyIncidents(){
+  const box=document.querySelector('[data-my-incidents]'); if(!box) return; const s=getSession();
+  const mine=getIncidents().filter(i=>i.reporterId===s.id).sort((a,b)=>b.created-a.created);
+  box.innerHTML=mine.length?mine.map(i=>`<div class="kpi" style="margin-top:8px"><strong>${esc(i.id)} · ${esc(i.type)}</strong><span class="small">${INC_STATUS[i.status][1]} · ${longDate(i.created)}</span>${i.resolution&&(i.status==='resolved'||i.status==='dismissed')?`<span class="small" style="display:block;margin-top:4px"><em>Admin: ${esc(i.resolution)}</em></span>`:''}</div>`).join(''):'<p class="small">You have not submitted any reports.</p>';
+}
+function handleIncident(form){
+  const s=getSession(), role=form.dataset.role, v=n=>(form.querySelector(`[name="${n}"]`)?.value||'').trim();
+  const type=v('type').replace(' (critical)',''), description=v('description'), bk=v('booking');
+  if(description.length<20) return formMessage(form,'Please describe what happened (at least 20 characters) so an administrator can act on it.');
+  let stayId='', bookingRef='', againstName='', againstId='';
+  if(bk.startsWith('stay:')){ const l=listingById(bk.slice(5)); if(l){ stayId=l.id; againstName=l.name; againstId=l.ownerId; } }
+  else if(bk){ const b=bookingByRef(bk); if(!b) return formMessage(form,'That booking could not be found.'); stayId=b.stayId; bookingRef=b.ref; if(role==='host'){ againstName=b.guestName; againstId=b.guestId; } else { againstName=b.stay; againstId=b.hostId; } }
+  else if(role==='host') return formMessage(form,'Please choose the booking this report is about.');
+  const evidence=[...form.elements].filter(e=>e.type==='file').flatMap(i=>[...(i.files||[])]).slice(0,5).map(f=>f.name);
+  const all=getIncidents(), n=all.reduce((m,i)=>Math.max(m,+String(i.id).replace(/\D/g,'')||0),0)+1;
+  const inc={id:'INC-'+String(n).padStart(4,'0'),reporterId:s.id,reporterName:s.name,reporterRole:role,stayId,bookingRef,againstName:againstName||'—',againstId,type,severity:CRITICAL_TYPES.includes(type)?'critical':'standard',description,evidence,status:'open',created:Date.now(),notes:[],resolution:''};
+  all.unshift(inc); if(!saveIncidents(all)) return formMessage(form,QUOTA_MSG);
+  form.reset(); initIncidentForm();
+  showToast(inc.severity==='critical'?`Critical report ${inc.id} sent. Administrators have been alerted.`:`Report ${inc.id} submitted`);
+}
+function initAdminIncidents(){
+  const body=document.querySelector('[data-admin-incidents]'); if(!body) return;
+  const panel=document.querySelector('#incidentPanel'), form=document.querySelector('#incidentAdminForm'), filter=document.querySelector('#incidentFilter');
+  let current=null;
+  const rank=i=>(i.status==='open'||i.status==='investigating'?0:1)*2+(i.severity==='critical'?0:1);
+  const draw=()=>{
+    const all=getIncidents(), f=filter?filter.value:'all';
+    const rows=all.filter(i=>f==='all'||i.status===f||(f==='critical'&&i.severity==='critical')).sort((a,b)=>rank(a)-rank(b)||b.created-a.created);
+    body.innerHTML=rows.map(i=>`<tr${i.severity==='critical'&&(i.status==='open'||i.status==='investigating')?' style="background:#fdf1ef"':''}><td><strong>${esc(i.id)}</strong> ${sevBadge(i)}</td><td>${esc(i.reporterName)}<div class="small">${esc(i.reporterRole)}</div></td><td>${esc(i.againstName)}</td><td>${esc(i.type)}</td><td>${fmtStamp(i.created)}</td><td>${incBadge(i)}</td><td><button type="button" class="btn btn-outline btn-sm" data-open="${esc(i.id)}">Open</button></td></tr>`).join('')||'<tr><td colspan="7" class="small" style="padding:24px">No incident reports.</td></tr>';
+    const c=st=>all.filter(i=>i.status===st).length;
+    setStat('inc-critical',all.filter(i=>i.severity==='critical'&&(i.status==='open'||i.status==='investigating')).length); setStat('inc-open',c('open')); setStat('inc-inv',c('investigating')); setStat('inc-res',c('resolved')+c('dismissed'));
+  };
+  const showPanel=i=>{
+    current=i.id; panel.hidden=false;
+    document.querySelector('#incTitle').innerHTML=`${esc(i.id)} · ${esc(i.type)} ${sevBadge(i)}`;
+    document.querySelector('#incMeta').innerHTML=`Reported ${longDate(i.created)} by <strong>${esc(i.reporterName)}</strong> (${esc(i.reporterRole)}) against <strong>${esc(i.againstName)}</strong>${i.bookingRef?` · booking ${esc(i.bookingRef)}`:''}${i.stayId?` · ${esc((listingById(i.stayId)||{}).name||'')}`:''}`;
+    document.querySelector('#incDesc').textContent=i.description;
+    document.querySelector('#incEvidence').textContent=i.evidence&&i.evidence.length?'Evidence files: '+i.evidence.join(', '):'No evidence attached.';
+    document.querySelector('#incNotes').innerHTML=(i.notes||[]).map(n=>`<div class="kpi" style="margin-top:6px"><span class="small">${longDate(n.t)} · ${esc(n.by)}</span><div>${esc(n.text)}</div></div>`).join('')||'<p class="small">No internal notes yet.</p>';
+    form.querySelector('[name=status]').value=i.status; form.querySelector('[name=resolution]').value=i.resolution||''; form.querySelector('[name=note]').value='';
+    const l=i.stayId&&listingById(i.stayId), host=i.againstId&&getAccounts().find(a=>a.id===i.againstId&&a.role==='host'), guest=i.reporterRole==='host'&&i.againstId&&getAccounts().find(a=>a.id===i.againstId&&a.role==='tourist');
+    const bt=(act,label,ok)=>ok?`<button type="button" class="btn btn-danger btn-sm" data-act="${act}">${label}</button>`:'';
+    document.querySelector('#incActions').innerHTML=bt('susp-listing',`Suspend listing “${l?esc(l.name):''}”`,l&&l.status==='approved')+bt('susp-host',`Suspend host ${host?esc(host.name):''}`,host&&!host.suspended)+bt('susp-guest',`Suspend guest ${guest?esc(guest.name):''}`,guest&&!guest.suspended)||'<span class="small">No account actions available for this report.</span>';
+    panel.scrollIntoView({behavior:'smooth',block:'start'});
+  };
+  const addNote=(i,text)=>{ (i.notes=i.notes||[]).push({t:Date.now(),by:getSession().name,text}); };
+  body.addEventListener('click',e=>{ const b=e.target.closest('[data-open]'); if(b){ const i=getIncidents().find(x=>x.id===b.dataset.open); if(i) showPanel(i); } });
+  document.querySelector('#incClose').addEventListener('click',()=>{ panel.hidden=true; });
+  document.querySelector('#incActions').addEventListener('click',e=>{
+    const b=e.target.closest('[data-act]'); if(!b||!current) return; const all=getIncidents(), i=all.find(x=>x.id===current); if(!i) return;
+    if(!confirm('Apply this action? It takes effect immediately.')) return;
+    if(b.dataset.act==='susp-listing'){ const L=getListings(), l=L.find(x=>x.id===i.stayId); if(l){ l.status='suspended'; saveListings(L); addNote(i,`Listing "${l.name}" suspended pending investigation.`); } }
+    else { const accs=getAccounts(), a=accs.find(x=>x.id===i.againstId); if(a){ a.suspended=true; putLS(K.acc,JSON.stringify(accs)); addNote(i,`Account of ${a.name} suspended pending investigation.`); } }
+    if(i.status==='open') i.status='investigating'; saveIncidents(all); draw(); showPanel(i); showToast('Action applied');
+  });
+  form.addEventListener('submit',e=>{ /* handled by bindForms → handleIncidentAdmin */ });
+  window.__saveIncidentAdmin=()=>{
+    const all=getIncidents(), i=all.find(x=>x.id===current); if(!i) return;
+    const v=n=>form.querySelector(`[name="${n}"]`).value.trim(), st=v('status');
+    if((st==='resolved'||st==='dismissed') && !v('resolution')) return formMessage(form,'Please add a short message for the reporter explaining the outcome.');
+    if(v('note')) addNote(i,v('note'));
+    if(st!==i.status) addNote(i,`Status changed to ${INC_STATUS[st][1]}.`);
+    i.status=st; i.resolution=v('resolution'); i.updated=Date.now();
+    if(saveIncidents(all)){ draw(); showPanel(i); showToast('Incident updated'); }
+  };
+  filter&&filter.addEventListener('change',draw); draw();
+}
+
+/* ---------- listing integrity controls ---------- */
+function integrityChecks(l){
+  const out=[], L=getListings(), norm=t=>String(t||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const dup=L.find(x=>x.id!==l.id && x.status!=='rejected' && (norm(x.name)===norm(l.name) || (norm(x.location)===norm(l.location) && x.type===l.type && x.ownerId!==l.ownerId)));
+  out.push(dup?{level:'warn',text:`Possible duplicate of “${dup.name}” (${dup.location}).`}:{level:'ok',text:'No duplicate listing found.'});
+  out.push(l.price<1500||l.price>60000?{level:'warn',text:`Nightly price KSh ${Math.round(l.price).toLocaleString('en-KE')} is outside the usual range (1,500–60,000).`}:{level:'ok',text:'Price is within the expected range.'});
+  const owner=getAccounts().find(a=>a.id===l.ownerId);
+  out.push(owner?{level:'ok',text:`Host account exists: ${owner.name}${owner.suspended?' (SUSPENDED)':''}.`}:{level:'warn',text:'The host has no registered account.'});
+  if(owner&&owner.suspended) out.push({level:'warn',text:'The host account is suspended.'});
+  out.push(l.coordsSource==='pinned'?{level:'ok',text:'Location pinned on the map.'}:{level:'warn',text:hasGeo(l)?'Map location is only approximate (the host did not pin it).':'No map location; tourists cannot find it on the map.'});
+  const own=(l.images||[]).some(i=>String(i).startsWith('data:'));
+  if(!own && !(owner&&owner.sample)) out.push({level:'warn',text:'No photos uploaded by the host; showing stock images.'}); else out.push({level:'ok',text:'Property photos present.'});
+  out.push((l.description||'').length<60?{level:'warn',text:'Description is very short (under 60 characters).'}:{level:'ok',text:'Description is detailed enough.'});
+  out.push((l.amenities||[]).length<3?{level:'warn',text:'Fewer than 3 amenities listed.'}:{level:'ok',text:'Amenities listed.'});
+  const crit=getIncidents().filter(i=>i.severity==='critical' && (i.status==='open'||i.status==='investigating') && (i.stayId===l.id || i.againstId===l.ownerId));
+  if(crit.length) out.push({level:'warn',text:`${crit.length} open critical incident report${crit.length>1?'s':''} involve this listing or its host.`});
+  return out;
+}
+const integrityWarnings = l=>integrityChecks(l).filter(c=>c.level==='warn');
+
+/* ======================================================================
+   GEO — Leaflet + OpenStreetMap + Browser Geolocation (as specified in the project document)
+   ====================================================================== */
+const KENYA_BOUNDS = [[-4.95,33.85],[5.1,42.0]];
+const inKenya = (lat,lng)=>lat>=-4.95 && lat<=5.1 && lng>=33.85 && lng<=42.0;
+/* a small built-in gazetteer so place search works even offline; OpenStreetMap search covers everything else */
+const KENYA_PLACES = [
+  ['Nairobi',-1.2921,36.8219,11],['Westlands',-1.2676,36.8108,13],['Kilimani',-1.2921,36.7872,13],['Karen',-1.3226,36.7085,13],['Gigiri',-1.2330,36.8050,13],
+  ['Mombasa',-4.0435,39.6682,11],['Diani',-4.3200,39.5800,12],['Malindi',-3.2192,40.1169,12],['Watamu',-3.3547,40.0247,12],['Kilifi',-3.6305,39.8499,12],['Lamu',-2.2717,40.9020,12],['Shela',-2.2790,40.9160,13],
+  ['Kisumu',-0.0917,34.7680,12],['Nakuru',-0.3031,36.0800,11],['Naivasha',-0.7167,36.4333,11],['Eldoret',0.5143,35.2698,12],['Kitale',1.0157,35.0062,12],['Kakamega',0.2827,34.7519,12],['Kisii',-0.6817,34.7667,12],
+  ['Nanyuki',0.0167,37.0722,12],['Nyeri',-0.4201,36.9476,12],['Meru',0.0463,37.6559,12],['Embu',-0.5389,37.4596,12],['Thika',-1.0333,37.0693,12],['Machakos',-1.5177,37.2634,12],['Isiolo',0.3546,37.5822,11],
+  ['Narok',-1.0783,35.8600,11],['Maasai Mara',-1.4900,35.1400,10],['Talek',-1.4700,35.1450,12],['Amboseli',-2.6527,37.2606,10],['Tsavo',-2.9800,38.4600,9],['Voi',-3.3961,38.5561,11],['Samburu',0.6000,37.5333,10],
+  ['Mount Kenya',-0.1521,37.3084,10],['Laikipia',0.3600,36.7800,9],['Garissa',-0.4532,39.6461,11],['Lodwar',3.1190,35.5970,11],['Lake Turkana',3.5,36.0,8],['Lake Victoria',-0.5,33.3,8],['Marsabit',2.3284,37.9899,10],['Hell\'s Gate',-0.9100,36.3200,12]
+];
+const toRad = d=>d*Math.PI/180;
+const distKm = (a,b)=>{ const R=6371, dLat=toRad(b.lat-a.lat), dLng=toRad(b.lng-a.lng), h=Math.sin(dLat/2)**2+Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLng/2)**2; return 2*R*Math.asin(Math.sqrt(h)); };
+const hasGeo = o=>!!o && o.lat!==null && o.lat!=='' && o.lat!==undefined && Number.isFinite(+o.lat) && Number.isFinite(+o.lng);
+const fmtKm = k=>k<1?'under 1 km':k<10?k.toFixed(1)+' km':Math.round(k).toLocaleString('en-KE')+' km';
+function placeFor(text){
+  const t=String(text||'').toLowerCase();
+  const hit=KENYA_PLACES.filter(p=>t.includes(p[0].toLowerCase())).sort((a,b)=>b[0].length-a[0].length)[0];
+  return hit?{lat:hit[1],lng:hit[2],name:hit[0],zoom:hit[3]}:null;
+}
+const approvedStays = ()=>getListings().filter(l=>l.status==='approved' && hasGeo(l));
+const publishedAttractions = ()=>getAttractions().filter(a=>a.status==='published' && hasGeo(a));
+const withDist = (list,c)=>list.map(o=>({o,d:distKm({lat:+c.lat,lng:+c.lng},{lat:+o.lat,lng:+o.lng})})).sort((a,b)=>a.d-b.d);
+const nearbyAttractions = (l,r=150)=>hasGeo(l)?withDist(publishedAttractions(),l).filter(x=>x.d<=r).map(x=>Object.assign({},x.o,{_km:x.d})):[];
+const nearHref = (c,label,tab)=>`search.html?near=${(+c.lat).toFixed(4)},${(+c.lng).toFixed(4)}&label=${encodeURIComponent(label)}&r=${c.r||100}${tab==='attractions'?'#attractions':''}`;
+
+/* ---------- Leaflet loader + helpers (library is bundled in /vendor, tiles come from OpenStreetMap) ---------- */
+let leafletP=null;
+function loadLeaflet(){
+  if(window.L) return Promise.resolve(window.L);
+  if(leafletP) return leafletP;
+  leafletP=new Promise((res,rej)=>{
+    const css=document.createElement('link'); css.rel='stylesheet'; css.href='vendor/leaflet/leaflet.css'; document.head.appendChild(css);
+    const sc=document.createElement('script'); sc.src='vendor/leaflet/leaflet.js'; sc.onload=()=>res(window.L); sc.onerror=()=>{ leafletP=null; rej(new Error('The map library could not be loaded.')); }; document.head.appendChild(sc);
+  });
+  return leafletP;
+}
+async function createMap(el,opts={}){
+  const L=await loadLeaflet();
+  const map=L.map(el,{scrollWheelZoom:false,minZoom:5,maxBounds:[[-9,29],[10,47]],maxBoundsViscosity:.8});
+  const tiles=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'}).addTo(map);
+  map.attributionControl.setPrefix('<a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a>');
+  tiles.on('tileerror',()=>el.classList.add('tiles-offline')); tiles.on('tileload',()=>el.classList.remove('tiles-offline'));
+  map.fitBounds(opts.bounds||KENYA_BOUNDS);
+  map.on('click',()=>map.scrollWheelZoom.enable()); el.addEventListener('mouseleave',()=>map.scrollWheelZoom.disable());
+  return map;
+}
+const pinIcon = kind=>window.L.divIcon({className:'se-pin '+kind,html:'<span></span>',iconSize:[26,26],iconAnchor:[13,26],popupAnchor:[0,-24]});
+const popupHTML = i=>`<strong>${esc(i.name)}</strong><br><span class="small">${esc(i.sub||'')}</span>${i.href?`<br><a class="home-link" href="${esc(i.href)}">${esc(i.cta||'View')}</a>`:''}`;
+function plot(map,layer,items,fit){
+  layer.clearLayers();
+  items.forEach(i=>window.L.marker([i.lat,i.lng],{icon:pinIcon(i.kind),title:i.name,keyboard:true,alt:i.name}).bindPopup(popupHTML(i)).addTo(layer));
+  if(fit&&items.length){ if(items.length===1) map.setView([items[0].lat,items[0].lng],11); else map.fitBounds(window.L.latLngBounds(items.map(i=>[i.lat,i.lng])),{padding:[40,40],maxZoom:12}); }
+}
+const stayPin = l=>({kind:'stay',id:l.id,name:l.name,lat:+l.lat,lng:+l.lng,sub:`${l.location} · KSh ${Math.round(l.price).toLocaleString('en-KE')}/night`,href:`details.html?id=${encodeURIComponent(l.id)}`,cta:'View stay'});
+const attrPin = a=>({kind:'attraction',id:a.id,name:a.name,lat:+a.lat,lng:+a.lng,sub:`${a.category} · ${a.county}`,href:`attraction-details.html?id=${encodeURIComponent(a.id)}`,cta:'Explore attraction'});
+
+/* a small map showing one item and what is near it (used on stay and attraction pages) */
+async function mountNearMap(el,centre,items){
+  try{
+    const map=await createMap(el), layer=window.L.layerGroup().addTo(map);
+    const all=[centre,...items]; plot(map,layer,all,true); setTimeout(()=>map.invalidateSize(),50);
+  }catch(e){ el.innerHTML=`<p class="small" style="padding:14px">${esc(e.message)}</p>`; }
+}
+
+/* ---------- home page: search anywhere in Kenya ---------- */
+function initHomeMap(){
+  const root=document.querySelector('#kenyaMap'); if(!root) return;
+  const $=s=>root.querySelector(s), input=$('#mapSearch'), box=$('#mapSuggest'), panel=$('#mapResults'), radiusSel=$('#mapRadius');
+  let map,layer,extra,centre=null,kind='all',sugg=[],active=-1;
+  const counts=()=>({a:publishedAttractions().length,s:approvedStays().length});
+  const pinsFor=c=>{ const A=publishedAttractions().map(attrPin), S=approvedStays().map(stayPin); return kind==='stays'?S:kind==='attractions'?A:[...A,...S]; };
+  const R=()=>+radiusSel.value||100;
+
+  const listItem=(x,type)=>`<a class="near-item" href="${type==='stay'?`details.html?id=${encodeURIComponent(x.o.id)}`:`attraction-details.html?id=${encodeURIComponent(x.o.id)}`}"><span class="near-dot ${type}"></span><span><strong>${esc(x.o.name)}</strong><span class="small">${type==='stay'?esc(x.o.location)+' · KSh '+Math.round(x.o.price).toLocaleString('en-KE'):esc(x.o.category)+' · '+esc(x.o.county)}</span></span><span class="near-km">${fmtKm(x.d)}</span></a>`;
+  const section=(title,type,all,c)=>{
+    const inR=all.filter(x=>x.d<=R()), show=inR.length?inR:all.slice(0,3), more=inR.length;
+    const label=c.label, wide=!inR.length, href=nearHref({lat:c.lat,lng:c.lng,r:wide?500:R()},label,type==='attraction'?'attractions':'stays');
+    return `<div class="near-section"><div class="near-head"><h4>${title}</h4></div>${inR.length?'':`<p class="small">Nothing within ${R()} km. The closest are:</p>`}${show.slice(0,4).map(x=>listItem(x,type)).join('')||'<p class="small">None yet.</p>'}<a class="home-link" href="${href}">${wide?`See ${type==='stay'?'stays':'attractions'} within 500 km of ${esc(label)}`:`View all ${more} ${type==='stay'?(more===1?'stay':'stays'):(more===1?'attraction':'attractions')} near ${esc(label)}`} →</a></div>`;
+  };
+  const paint=async()=>{
+    const n=counts();
+    if(!centre){
+      panel.innerHTML=`<h3>Across Kenya</h3><p class="small">${n.a} attractions and ${n.s} stays on the map. Search a place above, or use your location, to see what is close to it.</p><div class="near-links"><a class="btn btn-sm" href="search.html#attractions">View all ${n.a} attractions</a><a class="btn btn-outline btn-sm" href="search.html">View all ${n.s} stays</a></div>`;
+    } else {
+      const A=withDist(publishedAttractions().filter(a=>!(centre.type==='attraction'&&a.id===centre.id)),centre), S=withDist(approvedStays().filter(l=>!(centre.type==='stay'&&l.id===centre.id)),centre);
+      /* bidirectional: centred on a stay → attractions first; centred on an attraction → stays first */
+      const parts=centre.type==='stay'?[['attraction',section('Attractions near here','attraction',A,centre)],['stay',section('Other stays nearby','stay',S,centre)]]:centre.type==='attraction'?[['stay',section('Stays near here','stay',S,centre)],['attraction',section('Other attractions nearby','attraction',A,centre)]]:[['attraction',section('Attractions nearby','attraction',A,centre)],['stay',section('Stays nearby','stay',S,centre)]];
+      const want=kind==='stays'?'stay':kind==='attractions'?'attraction':'';
+      panel.innerHTML=`<h3>Near ${esc(centre.label)}</h3>${centre.note?`<p class="small">${esc(centre.note)}</p>`:''}${parts.filter(p=>!want||p[0]===want).map(p=>p[1]).join('')}<button type="button" class="link-danger" style="color:var(--forest)" data-clear>Clear search</button>`;
+    }
+    if(!map) return;
+    plot(map,layer,pinsFor(),false);
+    extra.clearLayers();
+    if(centre){
+      const L=window.L;
+      if(centre.type==='me'||centre.type==='place') L.marker([centre.lat,centre.lng],{icon:pinIcon('me'),title:centre.label}).bindPopup(`<strong>${esc(centre.label)}</strong>`).addTo(extra);
+      const circle=L.circle([centre.lat,centre.lng],{radius:R()*1000,color:'#0d3b2e',weight:1,fillOpacity:.05,interactive:false}).addTo(extra);
+      map.fitBounds(circle.getBounds(),{padding:[20,20],maxZoom:13});
+    } else map.fitBounds(KENYA_BOUNDS);
+  };
+  const choose=c=>{ centre=c; input.value=c.type==='me'?'':c.label; box.hidden=true; active=-1; paint(); root.scrollIntoView({behavior:'smooth',block:'nearest'}); };
+
+  /* ----- suggestions: local first (instant, offline), OpenStreetMap on demand ----- */
+  const localMatches=q=>{
+    const t=q.toLowerCase(), out=[];
+    publishedAttractions().filter(a=>`${a.name} ${a.county} ${a.category}`.toLowerCase().includes(t)).slice(0,4).forEach(a=>out.push({type:'attraction',label:a.name,sub:`Attraction · ${a.county}`,lat:+a.lat,lng:+a.lng,id:a.id}));
+    approvedStays().filter(l=>`${l.name} ${l.location}`.toLowerCase().includes(t)).slice(0,4).forEach(l=>out.push({type:'stay',label:l.name,sub:`Stay · ${l.location}`,lat:+l.lat,lng:+l.lng,id:l.id}));
+    KENYA_PLACES.filter(p=>p[0].toLowerCase().includes(t)).slice(0,4).forEach(p=>out.push({type:'place',label:p[0],sub:'Place in Kenya',lat:p[1],lng:p[2]}));
+    return out;
+  };
+  const drawSugg=(note)=>{
+    box.innerHTML=sugg.map((s,i)=>`<li role="option" data-i="${i}" class="${i===active?'on':''}"><span class="near-dot ${s.type==='stay'?'stay':s.type==='attraction'?'attraction':'place'}"></span><span><strong>${esc(s.label)}</strong><span class="small">${esc(s.sub)}</span></span></li>`).join('')+(note?`<li class="sugg-note">${note}</li>`:'');
+    box.hidden=!sugg.length&&!note; input.setAttribute('aria-expanded',String(!box.hidden));
+  };
+  const update=()=>{
+    const q=input.value.trim(); if(q.length<2){ sugg=[]; drawSugg(); return; }
+    sugg=localMatches(q); active=sugg.length?0:-1;
+    drawSugg(q.length>=3?`<a href="#" data-remote>Search all of Kenya for “${esc(q)}” on OpenStreetMap</a>`:'');
+  };
+  const remote=async()=>{
+    const q=input.value.trim(); if(q.length<3) return;
+    drawSugg('Searching OpenStreetMap…');
+    try{
+      const ctl=new AbortController(), to=setTimeout(()=>ctl.abort(),7000);
+      const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=ke&limit=6&q=${encodeURIComponent(q)}`,{signal:ctl.signal,headers:{'Accept':'application/json'}}); clearTimeout(to);
+      const data=await r.json();
+      sugg=data.map(d=>({type:'place',label:d.display_name.split(',').slice(0,2).join(',').trim(),sub:'OpenStreetMap · '+d.display_name.split(',').slice(-3,-1).join(',').trim(),lat:+d.lat,lng:+d.lon}));
+      active=sugg.length?0:-1; drawSugg(sugg.length?'':'No places found in Kenya for that search.');
+    }catch(e){ drawSugg('Could not reach OpenStreetMap search. Check your internet connection. Built-in places still work.'); }
+  };
+  input.addEventListener('input',update); input.addEventListener('focus',update);
+  input.addEventListener('keydown',e=>{
+    if(e.key==='ArrowDown'){ e.preventDefault(); if(sugg.length){ active=(active+1)%sugg.length; drawSugg(); } }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); if(sugg.length){ active=(active-1+sugg.length)%sugg.length; drawSugg(); } }
+    else if(e.key==='Enter'){ e.preventDefault(); if(sugg[active]) choose(sugg[active]); else remote(); }
+    else if(e.key==='Escape'){ box.hidden=true; }
+  });
+  box.addEventListener('mousedown',e=>{ e.preventDefault(); const li=e.target.closest('[data-i]'), rm=e.target.closest('[data-remote]'); if(li) choose(sugg[+li.dataset.i]); else if(rm) remote(); });
+  document.addEventListener('click',e=>{ if(!root.contains(e.target)) box.hidden=true; });
+  $('#mapGo').addEventListener('click',()=>{ if(sugg[active]) choose(sugg[active]); else if(input.value.trim().length>=3) remote(); else input.focus(); });
+
+  /* ----- Browser Geolocation API ----- */
+  $('#mapNear').addEventListener('click',()=>{
+    if(!navigator.geolocation) return showToast('Your browser does not support location.');
+    const b=$('#mapNear'); b.disabled=true; b.textContent='Locating…';
+    navigator.geolocation.getCurrentPosition(p=>{
+      b.disabled=false; b.textContent='◎ Use my location';
+      const lat=p.coords.latitude, lng=p.coords.longitude;
+      choose({type:'me',label:'your location',lat,lng,note:inKenya(lat,lng)?'':'You appear to be outside Kenya, so these are the closest places we have.'});
+    },err=>{ b.disabled=false; b.textContent='◎ Use my location'; showToast(err.code===1?'Location permission was denied. You can still search for a place.':'We could not get your location. Try searching for a place.'); },{enableHighAccuracy:false,timeout:10000,maximumAge:0});
+  });
+  radiusSel.addEventListener('change',paint);
+  root.querySelectorAll('[data-kind]').forEach(b=>b.addEventListener('click',()=>{ kind=b.dataset.kind; root.querySelectorAll('[data-kind]').forEach(x=>{ const on=x===b; x.classList.toggle('on',on); x.setAttribute('aria-pressed',on); }); paint(); }));
+  panel.addEventListener('click',e=>{ if(e.target.closest('[data-clear]')){ centre=null; input.value=''; paint(); } });
+
+  paint();   // list renders immediately; the map follows once the library has loaded
+  createMap($('#homeMap')).then(m=>{ map=m; layer=window.L.layerGroup().addTo(map); extra=window.L.layerGroup().addTo(map); paint(); })
+    .catch(e=>{ $('#homeMap').innerHTML=`<p class="small" style="padding:20px">${esc(e.message)}</p>`; });
+}
+
+/* ---------- home page: featured stays + popular attractions (live from the store) ---------- */
+function initHomeSections(){
+  const stays=document.querySelector('#featuredStays'), attrs=document.querySelector('#popularAttractions'); if(!stays&&!attrs) return;
+  const S=getListings().filter(l=>l.status==='approved').sort((a,b)=>(+b.score||0)-(+a.score||0));
+  if(stays){
+    const top=[]; const seen=new Set();
+    S.forEach(l=>{ const k=l.region||l.id; if(top.length<3 && !seen.has(k)){ seen.add(k); top.push(l); } }); S.forEach(l=>{ if(top.length<3 && !top.includes(l)) top.push(l); });
+    stays.innerHTML=top.map(l=>{ const na=nearbyAttractions(l,100).length;
+      return `<article class="hp-stay-card"><img src="${esc(coverOf(l))}" alt="${esc(l.name)}" /><div class="copy"><h3>${esc(l.name)}</h3><p>${esc(l.location)}</p><p>${esc(l.description.length>150?l.description.slice(0,147)+'…':l.description)}</p><a class="home-link" href="details.html?id=${encodeURIComponent(l.id)}">View stay</a>${na?`<a class="home-link" style="padding-top:4px" href="${nearHref(l,l.name,'attractions')}">${na} attraction${na===1?'':'s'} nearby →</a>`:''}</div></article>`; }).join('');
+    document.querySelectorAll('[data-stays-count]').forEach(e=>e.textContent=`View all ${S.length} stays →`);
+  }
+  if(attrs){
+    const A=getAttractions().filter(a=>a.status==='published'), pop=A.slice().sort((a,b)=>(!!b.featured-!!a.featured)||(nearbyStays(b).length-nearbyStays(a).length)).slice(0,3);
+    const bg=(a,g)=>`background-image:linear-gradient(180deg,transparent ${g}%,rgba(0,0,0,.76)),url('${esc(coverOf(a))}')`;
+    const links=a=>{ const n=nearbyStays(a).length; return `<a href="attraction-details.html?id=${encodeURIComponent(a.id)}">Explore ${esc(a.name)}</a>${hasGeo(a)?` <span class="hp-sep">·</span> <a href="${nearHref(a,a.name,'stays')}">${n} stay${n===1?'':'s'} nearby</a>`:''}`; };
+    attrs.innerHTML=pop.length?`<article class="hp-attraction-feature" style="${bg(pop[0],42)};background-size:cover;background-position:center"><div class="copy"><div class="hp-kicker" style="color:#efb59e">${esc(pop[0].name)} · ${esc(pop[0].county)} County · ${esc(pop[0].category)}</div><h3>${esc(pop[0].tagline||'')}</h3><div class="hp-links">${links(pop[0])}</div></div></article><div class="hp-attraction-grid">${pop.slice(1).map(a=>`<article class="hp-attraction-card" style="${bg(a,15)}"><div class="copy"><div class="hp-kicker" style="color:#efb59e">${esc(a.category)} · ${esc(a.county)}</div><h3>${esc(a.tagline||'')}</h3><div class="hp-links">${links(a)}</div></div></article>`).join('')}</div>`:'<p class="small">No attractions are published yet.</p>';
+    document.querySelectorAll('[data-attractions-count]').forEach(e=>e.textContent=`View all ${A.length} attractions →`);
+  }
+}
+
+/* ---------- location pin picker for host / admin forms ---------- */
+function initPickMaps(){
+  document.querySelectorAll('[data-pick-map]').forEach(el=>{
+    if(el.dataset.bound) return; el.dataset.bound='1';
+    const form=el.closest('form')||document.body, latI=form.querySelector('[name=lat]'), lngI=form.querySelector('[name=lng]'), note=form.querySelector('[data-pick-note]');
+    let map,marker;
+    const setMarker=(lat,lng,zoom)=>{ if(!map) return; if(marker) marker.setLatLng([lat,lng]); else marker=window.L.marker([lat,lng],{icon:pinIcon('stay'),draggable:true}).addTo(map).on('dragend',()=>{ const p=marker.getLatLng(); store(p.lat,p.lng); }); if(zoom) map.setView([lat,lng],zoom); };
+    const store=(lat,lng)=>{ latI.value=(+lat).toFixed(5); lngI.value=(+lng).toFixed(5); if(note) note.textContent=inKenya(lat,lng)?`Pinned at ${(+lat).toFixed(4)}, ${(+lng).toFixed(4)}`:'That point is outside Kenya. Please pin a place in Kenya.'; };
+    const ready=createMap(el).then(m=>{
+      map=m; map.on('click',e=>{ setMarker(e.latlng.lat,e.latlng.lng); store(e.latlng.lat,e.latlng.lng); });
+      if(hasGeo({lat:latI.value,lng:lngI.value})) setMarker(+latI.value,+lngI.value,11);
+    }).catch(e=>{ el.innerHTML=`<p class="small" style="padding:14px">${esc(e.message)}</p>`; });
+    el.__pick={
+      set:async(lat,lng)=>{ await ready; if(hasGeo({lat,lng})){ latI.value=lat; lngI.value=lng; setMarker(+lat,+lng,11); if(note) note.textContent=`Pinned at ${(+lat).toFixed(4)}, ${(+lng).toFixed(4)}`; } else { latI.value=''; lngI.value=''; if(marker){ map.removeLayer(marker); marker=null; } if(note) note.textContent='Click the map to pin the exact location.'; } },
+      refresh:async()=>{ await ready; map&&map.invalidateSize(); },
+      centreOn:async text=>{ await ready; const p=placeFor(text); if(p&&!marker&&map) map.setView([p.lat,p.lng],p.zoom); }
+    };
+    const loc=form.querySelector('[name=location],[name=county]'); if(loc) loc.addEventListener('change',()=>el.__pick.centreOn(loc.value+' '+((form.querySelector('[name=name]')||{}).value||'')));
+    const here=form.querySelector('[data-pick-here]');
+    if(here) here.addEventListener('click',()=>{ if(!navigator.geolocation) return showToast('Your browser does not support location.'); navigator.geolocation.getCurrentPosition(async p=>{ await ready; setMarker(p.coords.latitude,p.coords.longitude,14); store(p.coords.latitude,p.coords.longitude); },()=>showToast('We could not get your location. Click the map instead.'),{timeout:10000}); });
+  });
+}
+/* read the pin from a form; falls back to a known place name, else keeps what the record already had */
+function geoFromForm(form,text,existing){
+  const lat=parseFloat(form.querySelector('[name=lat]')?.value), lng=parseFloat(form.querySelector('[name=lng]')?.value);
+  if(Number.isFinite(lat)&&Number.isFinite(lng)){ if(!inKenya(lat,lng)) return {error:'The map pin is outside Kenya. Please pin a place in Kenya.'}; return {lat,lng,coordsSource:'pinned'}; }
+  if(existing&&hasGeo(existing)) return {lat:+existing.lat,lng:+existing.lng,coordsSource:existing.coordsSource||'approx'};
+  const p=placeFor(text); return p?{lat:p.lat,lng:p.lng,coordsSource:'approx'}:{};
+}
+
+/* ======================================================================
+   MESSAGING — tourist ↔ host inbox (one conversation per guest + stay)
+   Simple asynchronous inbox. Other open tabs refresh automatically; true
+   real-time chat is listed as future work in the project document.
+   ====================================================================== */
+const MSG_MAX = 1000;
+const getThreads = ()=>readJSON(ls,K.threads,[]);
+const saveThreads = a=>putLS(K.threads,JSON.stringify(a));
+const msgRole = ()=>{ const s=getSession(); return !s?null:s.role==='host'?'host':s.role==='tourist'?'guest':null; };
+const lastT = t=>t.messages.length?t.messages[t.messages.length-1].t:t.created;
+const unreadFor = (t,role)=>{ const read=(role==='guest'?t.readGuest:t.readHost)||0; return t.messages.filter(m=>m.from!==role && m.t>read).length; };
+function myThreads(){ const s=getSession(), role=msgRole(); if(!s||!role) return []; return getThreads().filter(t=>role==='host'?t.hostId===s.id:t.guestId===s.id).sort((a,b)=>lastT(b)-lastT(a)); }
+const unreadTotal = ()=>{ const role=msgRole(); return role?myThreads().reduce((n,t)=>n+unreadFor(t,role),0):0; };
+function paintBadges(){ const n=unreadTotal(); document.querySelectorAll('[data-msg-badge]').forEach(b=>{ b.textContent=n>99?'99+':n; b.hidden=!n; }); }
+const timeAgo = t=>{ const m=Math.round((Date.now()-t)/60000); if(m<1) return 'just now'; if(m<60) return m+' min ago'; const h=Math.round(m/60); if(h<24) return h+' h ago'; return new Date(t).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}); };
+
+function initMessages(){
+  const root=document.querySelector('[data-messages]'); if(!root) return;
+  const s=getSession(), role=root.dataset.role, me=role==='host'?'host':'guest', params=new URLSearchParams(location.search);
+  let activeId=params.get('t')||'', draft=null, note='';
+
+  /* a conversation that does not exist yet: opened from "Message host" / "Message guest" */
+  const stayParam=params.get('stay'), guestParam=params.get('guest');
+  if(!activeId && stayParam){
+    const existing=getThreads().find(t=>t.stayId===stayParam && (me==='guest'?t.guestId===s.id:t.guestId===guestParam && t.hostId===s.id));
+    if(existing) activeId=existing.id;
+    else {
+      const l=listingById(stayParam);
+      if(!l) note='That stay could not be found.';
+      else if(me==='guest'){ const host=getAccounts().find(a=>a.id===l.ownerId); if(!host) note='This stay\'s host has no account yet, so messaging is not available.'; else draft={stayId:l.id,stayName:l.name,guestId:s.id,guestName:s.name,hostId:host.id,hostName:host.name}; }
+      else { const b=hostBookings().find(x=>x.stayId===stayParam&&x.guestId===guestParam); if(!b) note='You can message guests who have booked one of your stays.'; else draft={stayId:l.id,stayName:l.name,guestId:b.guestId,guestName:b.guestName,hostId:s.id,hostName:s.name}; }
+    }
+  }
+  const otherName=t=>me==='guest'?t.hostName:t.guestName;
+  const bubbleHTML=m=>`<div class="bubble ${m.from===me?'mine':'theirs'}"><div>${esc(m.text).replace(/\n/g,'<br>')}</div><span class="small">${timeAgo(m.t)}</span></div>`;
+
+  const draw=()=>{
+    const threads=myThreads(), cur=threads.find(t=>t.id===activeId)||null;
+    if(cur){ const read=me==='guest'?'readGuest':'readHost'; if(unreadFor(cur,me)){ const all=getThreads(), t=all.find(x=>x.id===cur.id); t[read]=Date.now(); saveThreads(all); cur[read]=t[read]; } }
+    const conv=cur||draft;
+    const listHTML=(draft&&!cur?`<button type="button" class="thread on" data-draft><strong>${esc(otherName(draft))}</strong><span class="small">${esc(draft.stayName)}</span><span class="small"><em>New message</em></span></button>`:'')
+      +threads.map(t=>{ const last=t.messages[t.messages.length-1], u=unreadFor(t,me); return `<button type="button" class="thread${cur&&cur.id===t.id?' on':''}" data-t="${esc(t.id)}"><strong>${esc(otherName(t))}${u?` <span class="msg-badge">${u}</span>`:''}</strong><span class="small">${esc(t.stayName)}</span><span class="small">${last?esc((last.from===me?'You: ':'')+last.text.slice(0,60)):''} · ${timeAgo(lastT(t))}</span></button>`; }).join('');
+    const empty=!threads.length&&!draft;
+    root.innerHTML=`<div class="msg-layout card"><div class="msg-list" role="list" aria-label="Conversations">${listHTML||''}${empty?`<div class="pad"><p class="small">No conversations yet.</p>${me==='guest'?'<a class="btn btn-sm" href="search.html">Find a stay to message</a>':'<p class="small">Guests who message you, and guests with bookings you start a chat with, appear here.</p>'}</div>`:''}</div>
+      <div class="msg-pane">${conv?`<div class="msg-head"><div><strong>${esc(otherName(conv))}</strong><div class="small">About <a class="home-link" href="details.html?id=${encodeURIComponent(conv.stayId)}">${esc(conv.stayName)}</a></div></div></div><div class="msg-body" id="msgBody" tabindex="0" aria-live="polite">${conv.messages&&conv.messages.length?conv.messages.map(bubbleHTML).join(''):`<p class="small" style="text-align:center;margin:auto">Say hello to ${esc(otherName(conv))}. Ask about dates, the area or anything else.</p>`}</div><div class="msg-safe small">For your protection, keep payments and bookings on StayExplore. Never share card details or passwords in chat.</div><div class="msg-compose"><textarea id="msgText" rows="2" maxlength="${MSG_MAX}" placeholder="Write a message…" aria-label="Message"></textarea><button type="button" class="btn" id="msgSend">Send</button></div><div class="form-error" id="msgErr" role="alert" hidden></div>`:`<div class="pad" style="margin:auto;text-align:center"><p class="small">${esc(note)||'Select a conversation.'}</p></div>`}</div></div>`;
+    const body=root.querySelector('#msgBody'); if(body) body.scrollTop=body.scrollHeight;
+    paintBadges();
+  };
+  const send=()=>{
+    const ta=root.querySelector('#msgText'), err=root.querySelector('#msgErr'), text=ta.value.trim();
+    const fail=m=>{ err.textContent=m; err.hidden=false; };
+    if(!text) return fail('Please write a message first.');
+    if(text.length>MSG_MAX) return fail(`Messages can be up to ${MSG_MAX} characters.`);
+    const all=getThreads(); let t=all.find(x=>x.id===activeId);
+    if(!t){ if(!draft) return; t=Object.assign({id:'th-'+Date.now().toString(36),created:Date.now(),messages:[],readGuest:0,readHost:0},draft); all.push(t); activeId=t.id; draft=null; history.replaceState(null,'',location.pathname+'?t='+t.id); }
+    t.messages.push({id:'m-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),from:me,text,t:Date.now()}); t[me==='guest'?'readGuest':'readHost']=Date.now();
+    if(!saveThreads(all)) return fail(QUOTA_MSG);
+    draw(); root.querySelector('#msgText').focus();
+  };
+  root.addEventListener('click',e=>{ const t=e.target.closest('[data-t]'); if(t){ activeId=t.dataset.t; draft=null; history.replaceState(null,'',location.pathname+'?t='+activeId); draw(); return; } if(e.target.closest('#msgSend')) send(); });
+  root.addEventListener('keydown',e=>{ if(e.target.id==='msgText' && e.key==='Enter' && !e.shiftKey){ e.preventDefault(); send(); } });
+  window.addEventListener('storage',e=>{ if(e.key===K.threads){ const ta=root.querySelector('#msgText'), keep=ta?ta.value:''; draw(); const n=root.querySelector('#msgText'); if(n&&keep) n.value=keep; } });
+  draw();
+  const ta=root.querySelector('#msgText'); if(ta&&(draft||activeId)) ta.focus();
+}
+
 /* ---------- host / admin application shell ---------- */
 function initShell(){
   const shell=document.querySelector('[data-shell]');
   if(!shell || shell.dataset.ready) return;
   const role=need, active=document.body.dataset.active||'', s=getSession();
-  const host=[['dashboard','Host overview','host-dashboard.html'],['listings','Manage listings','host-manage-listings.html'],['add','Add listing','host-add-listing.html'],['availability','Availability','host-availability.html'],['bookings','Manage bookings','host-manage-bookings.html'],['payments','Payment tracking','host-payments.html'],['reviews','Guest reviews','host-reviews.html'],['incident','Report incident','host-report-incident.html'],['profile','Host profile','host-profile.html']];
+  const host=[['dashboard','Host overview','host-dashboard.html'],['listings','Manage listings','host-manage-listings.html'],['add','Add listing','host-add-listing.html'],['availability','Availability','host-availability.html'],['bookings','Manage bookings','host-manage-bookings.html'],['messages','Messages','host-messages.html'],['payments','Payment tracking','host-payments.html'],['reviews','Guest reviews','host-reviews.html'],['incident','Report incident','host-report-incident.html'],['profile','Host profile','host-profile.html']];
   const admin=[['dashboard','Admin overview','admin-dashboard.html'],['approvals','Listing approvals','admin-listing-approvals.html'],['users','Manage users','admin-manage-users.html'],['reviews','Moderate reviews','admin-moderate-reviews.html'],['incidents','Incident reports','admin-incident-reports.html'],['attractions','Manage attractions','admin-attractions.html'],['profile','Admin profile','admin-profile.html']];
-  const nav=(role==='host'?host:admin).map(([id,l,h])=>`<a href="${h}" ${active===id?'class="active" aria-current="page"':''}>${l}</a>`).join('');
+  const nav=(role==='host'?host:admin).map(([id,l,h])=>`<a href="${h}" ${active===id?'class="active" aria-current="page"':''}>${l}${id==='messages'?' <span class="msg-badge" data-msg-badge hidden></span>':''}</a>`).join('');
   const content=shell.innerHTML;                    // copy BEFORE replacing (avoids duplicated content)
   shell.dataset.ready='1';
   shell.innerHTML=`<aside class="app-sidebar"><a class="side-brand" href="index.html"><span class="brand-mark">SE</span><span>StayExplore<small>KENYA</small></span></a><div class="side-section">${role==='host'?'Hosting':'Administration'}</div><nav class="side-nav">${nav}</nav><div class="side-section">Account</div><nav class="side-nav"><a href="index.html">View website</a><a href="#" data-logout>Sign out</a></nav></aside><main class="app-main"><header class="app-top"><span class="user-chip">${esc(s?.name||roleLabel(role))}</span><span class="role-pill role-pill-dark">${roleLabel(role)}</span></header><div class="app-content">${content}</div></main>`;
@@ -865,14 +1465,15 @@ function initFavourites(){
 function initSearch(){
   const list=document.querySelector('#stayList'); if(!list) return;
   const $=s=>document.querySelector(s);
-  list.innerHTML=getListings().filter(l=>l.status==='approved').map(stayCardHTML).join('');
-  const cards=[...list.querySelectorAll('.filterable')];
   const params=new URLSearchParams(location.search); let region=REGIONS[params.get('region')]?params.get('region'):'';
+  const nm=(params.get('near')||'').split(',').map(Number); let near=nm.length===2&&nm.every(Number.isFinite)?{lat:nm[0],lng:nm[1],label:params.get('label')||'this place',r:Math.min(500,Math.max(5,+params.get('r')||100))}:null;
+  list.innerHTML=getListings().filter(l=>l.status==='approved').map(l=>stayCardHTML(l,near)).join('');
+  const cards=[...list.querySelectorAll('.filterable')];
   if(params.get('q')) $('#liveSearch').value=params.get('q');
   const note=document.createElement('div'); note.className='notice region-note'; note.hidden=true;
   list.parentElement.insertBefore(note,list);
-  const paintNote=()=>{ note.hidden=!region; if(region){ note.innerHTML=`Showing stays near <strong>${esc(REGIONS[region].name)}</strong>. <a href="#" data-clear-region class="home-link">Show all stays</a>`; } };
-  note.addEventListener('click',e=>{ if(e.target.closest('[data-clear-region]')){ e.preventDefault(); region=''; paintNote(); apply(); } });
+  const paintNote=()=>{ note.hidden=!region&&!near; if(near) note.innerHTML=`Showing stays within <strong>${near.r} km</strong> of <strong>${esc(near.label)}</strong>, nearest first. <a href="#" data-clear-region class="home-link">Show all stays</a>`; else if(region) note.innerHTML=`Showing stays near <strong>${esc(REGIONS[region].name)}</strong>. <a href="#" data-clear-region class="home-link">Show all stays</a>`; };
+  note.addEventListener('click',e=>{ if(e.target.closest('[data-clear-region]')){ e.preventDefault(); region=''; near=null; cards.forEach(c=>c.querySelectorAll('[style*="font-weight:700"]').forEach(x=>x.remove())); paintNote(); apply(); } });
   const apply=()=>{
     const q=($('#liveSearch').value||'').toLowerCase().trim();
     const min=parseFloat($('#minPrice').value)||0, max=parseFloat($('#maxPrice').value)||Infinity;
@@ -881,11 +1482,12 @@ function initSearch(){
     const amen=[...document.querySelectorAll('[data-amenity]:checked')].map(c=>c.dataset.amenity);
     let shown=0;
     cards.forEach(c=>{
-      const ok=(!region||c.dataset.region===region) && c.textContent.toLowerCase().includes(q) && +c.dataset.price>=min && +c.dataset.price<=max && +c.dataset.rating>=minRating && amen.every(a=>c.dataset.amenities.split(',').includes(a));
+      const ok=(!region||c.dataset.region===region) && (!near||(c.dataset.dist!==''&&+c.dataset.dist<=near.r)) && c.textContent.toLowerCase().includes(q) && +c.dataset.price>=min && +c.dataset.price<=max && +c.dataset.rating>=minRating && amen.every(a=>c.dataset.amenities.split(',').includes(a));
       c.hidden=!ok; if(ok) shown++;
     });
     const sort=$('#sortBy').value, key={Recommended:['score',-1],'Lowest price':['price',1],'Highest rated':['rating',-1]}[sort]||['score',-1];
-    [...cards].sort((a,b)=>(+a.dataset[key[0]]-+b.dataset[key[0]])*key[1]).forEach(c=>list.appendChild(c));
+    [...cards].sort((a,b)=>near&&sort==='Recommended'?((+a.dataset.dist||1e9)-(+b.dataset.dist||1e9)):(+a.dataset[key[0]]-+b.dataset[key[0]])*key[1]).forEach(c=>list.appendChild(c));
+    window.__refreshSearchMap&&window.__refreshSearchMap(cards.filter(c=>!c.hidden));
     $('#resultCount').textContent=`${shown} stay${shown===1?'':'s'} found · smart score enabled`;
     $('#noResults').hidden=shown>0;
   };
@@ -893,7 +1495,17 @@ function initSearch(){
   ['#sortBy'].forEach(s=>$(s).addEventListener('change',apply));
   document.querySelectorAll('[data-min-rating],[data-amenity]').forEach(c=>c.addEventListener('change',apply));
   $('#applyFilters').addEventListener('click',apply);
-  $('#resetFilters').addEventListener('click',()=>{ document.querySelectorAll('#filters input').forEach(i=>i.type==='checkbox'?i.checked=false:i.value=''); region=''; paintNote(); apply(); });
+  $('#resetFilters').addEventListener('click',()=>{ document.querySelectorAll('#filters input').forEach(i=>i.type==='checkbox'?i.checked=false:i.value=''); region=''; near=null; paintNote(); apply(); });
+  /* map view of whatever the filters currently show */
+  const mapBtn=$('#viewMap'), mapBox=document.createElement('div'); mapBox.id='searchMap'; mapBox.className='card search-map'; mapBox.hidden=true; mapBox.innerHTML='<div class="search-map-canvas" id="searchMapCanvas"></div>';
+  list.parentElement.insertBefore(mapBox,list); let smap,slayer;
+  window.__refreshSearchMap=cs=>{ if(!smap||mapBox.hidden) return; plot(smap,slayer,cs.filter(c=>c.dataset.lat!=='').map(c=>{ const l=listingById(c.dataset.id); return l?stayPin(l):null; }).filter(Boolean),true); };
+  if(mapBtn) mapBtn.addEventListener('click',async()=>{
+    mapBox.hidden=!mapBox.hidden; mapBtn.textContent=mapBox.hidden?'View map':'Hide map';
+    if(mapBox.hidden) return;
+    try{ if(!smap){ smap=await createMap($('#searchMapCanvas')); slayer=window.L.layerGroup().addTo(smap); } smap.invalidateSize(); window.__refreshSearchMap(cards.filter(c=>!c.hidden)); }
+    catch(e){ $('#searchMapCanvas').innerHTML=`<p class="small" style="padding:20px">${esc(e.message)}</p>`; }
+  });
   paintNote(); apply();
 }
 
@@ -912,6 +1524,8 @@ function bindForms(){
         else if(form.id==='loginForm') await handleLogin(form);
         else if(form.hasAttribute('data-profile-form')) await handleProfile(form);
         else if(form.id==='listingForm') await handleListing(form);
+        else if(form.id==='incidentForm') handleIncident(form);
+        else if(form.id==='incidentAdminForm') window.__saveIncidentAdmin&&window.__saveIncidentAdmin();
         else if(form.id==='attractionForm') await handleAttraction(form);
         else {
           if(form.dataset.next==='confirmation.html'){ const err=completeBooking(); if(err){ formMessage(form,err); if(btn) btn.disabled=false; return; } }
@@ -953,11 +1567,13 @@ function bindMisc(){
 document.addEventListener('DOMContentLoaded',async()=>{
   try{
     if(redirecting) return;
-    ensureDemoAdmin(); ensureSampleHosts(); seedStore();
+    ensureDemoAdmin(); ensureSampleHosts(); seedStore(); syncRatings();
     initShell(); renderChrome();
+    initHomeSections(); initHomeMap(); initPickMaps();
     initSearch(); initAttractionList(); initStayPage(); initAttractionPage();
     initHostListings(); initHostEdit(); initHostDashboard(); initHostBookings(); initHostPayments(); initHostAvailability(); initTouristBookings();
     initAdminListings(); initAdminAttractions(); initAdminUsers(); initAdminDashboard();
+    initReviewPage(); initHostReviews(); initAdminReviews(); initIncidentForm(); initAdminIncidents(); initMessages(); paintBadges();
     bindTabs(); initDateInputs(); initProfile();
     initBookingFlow(); initFavourites(); bindPreviews(); initPhotoUpload(); bindForms(); bindMisc();
     const m=consumeFlash(); if(m) setTimeout(()=>showToast(m),120);

@@ -46,6 +46,30 @@
       </div>
     </section>
 
+    <section class="hp-section hp-map-section" id="kenyaMap">
+      <div class="hp-kicker">Search anywhere in Kenya</div>
+      <h2>Find a stay or an attraction on the map</h2>
+      <p class="hp-caption">Start from a place you want to visit and see the best stays around it, or start from a stay and see what is nearby.</p>
+      <div class="map-search">
+        <div class="map-search-box">
+          <input id="mapSearch" type="search" placeholder="Try “Diani”, “Maasai Mara”, “Nanyuki”…" autocomplete="off" aria-label="Search a place, attraction or stay in Kenya" role="combobox" aria-expanded="false" aria-controls="mapSuggest" />
+          <ul id="mapSuggest" role="listbox" hidden></ul>
+        </div>
+        <button class="btn" id="mapGo" type="button">Search</button>
+        <button class="btn btn-outline" id="mapNear" type="button">◎ Use my location</button>
+        <select id="mapRadius" aria-label="Search radius"><option value="25">Within 25 km</option><option value="50">Within 50 km</option><option value="100" selected>Within 100 km</option><option value="250">Within 250 km</option></select>
+      </div>
+      <div class="map-chips" role="group" aria-label="Show on map">
+        <button type="button" class="chip on" data-kind="all" aria-pressed="true">All</button>
+        <button type="button" class="chip" data-kind="attractions" aria-pressed="false"><span class="near-dot attraction"></span>Attractions</button>
+        <button type="button" class="chip" data-kind="stays" aria-pressed="false"><span class="near-dot stay"></span>Stays</button>
+      </div>
+      <div class="map-layout">
+        <div class="home-map" id="homeMap" aria-label="Map of attractions and stays across Kenya"></div>
+        <aside class="card pad map-results" id="mapResults" aria-live="polite"></aside>
+      </div>
+    </section>
+
     <section class="hp-intro">
       <div class="hp-benefits">
         <div class="hp-benefit">
@@ -72,73 +96,13 @@
     </section>
 
     <section class="hp-section">
-      <div class="hp-kicker">Curated for your journey</div>
-      <h2>Featured Stays</h2>
-      <p class="hp-caption">Hand-picked places to unwind, each close to something worth exploring.</p>
-      <div class="hp-stay-grid">
-        <article class="hp-stay-card">
-          <img src="assets/user-lodge.jpg" alt="Mt Kenya Forest Lodge exterior" />
-          <div class="copy">
-            <h3>Mt Kenya Forest Lodge</h3>
-            <p>Nanyuki, Mt Kenya region</p>
-            <p>Come relax in this beautiful home after a day of hiking. Wake up by the fireplace with a view of the peaks, ready for tomorrow's trail.</p>
-            <a class="home-link" href="details.html?id=mt-kenya-forest-lodge">View stay</a>
-          </div>
-        </article>
-
-        <article class="hp-stay-card">
-          <img src="assets/user-house.jpg" alt="Karura House living room with city views" />
-          <div class="copy">
-            <h3>Karura House</h3>
-            <p>Gigiri, Nairobi</p>
-            <p>A warm, plant-filled home with city views, minutes from Karura Forest's walking and cycling trails. Calm mornings, easy evenings.</p>
-            <a class="home-link" href="details.html?id=karura-house">View stay</a>
-          </div>
-        </article>
-
-        <article class="hp-stay-card">
-          <img src="assets/user-lamu.jpg" alt="Lamu Old Town Retreat" />
-          <div class="copy">
-            <h3>Lamu Old Town Retreat</h3>
-            <p>Shela, Lamu</p>
-            <p>A whitewashed Swahili house on a car-free lane, steps from the sea. Wander the old town, sail at sunset and sleep to the sound of the waves.</p>
-            <a class="home-link" href="details.html?id=lamu-old-town-retreat">View stay</a>
-          </div>
-        </article>
-      </div>
+      <div class="hp-section-head"><div><div class="hp-kicker">Curated for your journey</div><h2>Featured Stays</h2><p class="hp-caption">Hand-picked places to unwind, each close to something worth exploring.</p></div><a class="home-link hp-viewall" href="search.html" data-stays-count>View all stays →</a></div>
+      <div class="hp-stay-grid" id="featuredStays"></div>
     </section>
 
     <section class="hp-section" id="attractions">
-      <div class="hp-kicker">Explore by destination</div>
-      <h2>Popular Attractions</h2>
-      <p class="hp-caption">Discover Kenya's most iconic landscapes, wildlife reserves, and coastal escapes.</p>
-      <div class="hp-attraction-layout">
-        <article class="hp-attraction-feature">
-          <div class="copy">
-            <div class="hp-kicker" style="color:#efb59e;">Maasai Mara National Park, Narok County, Wildlife</div>
-            <h3>Watch the Savannah turn gold at sunset, with giraffes and acacias on the horizon. Home to the Big Five and the Great Migration.</h3>
-            <a class="btn btn-light btn-sm" href="attraction-details.html?id=maasai-mara">Explore attraction</a>
-          </div>
-        </article>
-
-        <div class="hp-attraction-grid">
-          <article class="hp-attraction-card">
-            <div class="copy">
-              <div class="hp-kicker" style="color:#efb59e;">Kenya highlands</div>
-              <h3>Africa's second-highest peak, with glaciers, alpine lakes and forest trails.</h3>
-              <a href="attraction-details.html?id=mount-kenya">Explore Mount Kenya</a>
-            </div>
-          </article>
-
-          <article class="hp-attraction-card">
-            <div class="copy">
-              <div class="hp-kicker" style="color:#efb59e;">Coastal Kenya</div>
-              <h3>Powder-white sand and turquoise Indian Ocean water along Diani, Lamu and the coast.</h3>
-              <a href="attraction-details.html?id=lamu-old-town">Explore Lamu</a>
-            </div>
-          </article>
-        </div>
-      </div>
+      <div class="hp-section-head"><div><div class="hp-kicker">Explore by destination</div><h2>Popular Attractions</h2><p class="hp-caption">Discover Kenya's most iconic landscapes, wildlife reserves, and coastal escapes.</p></div><a class="home-link hp-viewall" href="search.html#attractions" data-attractions-count>View all attractions →</a></div>
+      <div class="hp-attraction-layout" id="popularAttractions"></div>
     </section>
 
     <section class="hp-host">
@@ -179,6 +143,6 @@
       </div>
     </footer>
 
-    <script src="js/app.js"></script>
+    
   </body>
 </html>
