@@ -272,3 +272,11 @@ img{max-width:100%}
 
 .hp-attraction-layout>.hp-attraction-grid{grid-column:1/-1}
 .hp-attraction-card h3{text-shadow:0 1px 6px rgba(0,0,0,.55)}
+
+/* ===== v6: payments tracking, score info, evidence ===== */
+.pay-methods{display:grid;gap:8px}.pay-method{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:#fffdf9}.pay-method.on,.pay-method:has(input:checked){border-color:var(--forest);background:#eef3ee}.pay-method input{margin-top:4px}.pay-method strong{display:block}.pay-method small{color:var(--muted);font-size:12.5px}
+.score-info{margin-bottom:14px}.score-info summary{cursor:pointer}.score-info ul{margin:8px 0 8px 18px;padding:0}.score-info li{margin:4px 0;font-size:14px}.score-info p{font-size:14px;margin:8px 0}
+.evidence-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}.evidence-row img{width:130px;height:96px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+.pay-method{text-transform:none;letter-spacing:0;font-weight:400;font-size:14px;color:var(--ink,#1d1d1b)}
+.pay-method strong{display:block;font-size:15px;font-weight:700;text-transform:none;letter-spacing:0;color:inherit}
+.pay-method small{display:block;margin-top:2px;font-size:12.5px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)}

@@ -326,9 +326,16 @@ function bindPreviews(){
 const setStat = (k,v)=>document.querySelectorAll(`[data-stat="${k}"]`).forEach(e=>e.textContent=v);
 
 /* ---------- tourist: stay list, stay page ---------- */
+function smartScore(l,ctx){
+  const r=+l.rating||0, prices=approvedStays().map(x=>+x.price).sort((a,b)=>a-b), med=prices.length?prices[Math.floor(prices.length/2)]:(+l.price||1);
+  const rating=r?r/5*100:60, popularity=Math.min(100,25+(+l.bookings||0)*2), value=Math.max(30,Math.min(100,100-((+l.price/med)-1)*50));
+  let km=null; if(hasGeo(l)){ if(ctx) km=distKm(ctx,{lat:+l.lat,lng:+l.lng}); else { const n=nearbyAttractions(l,300)[0]; km=n?n._km:null; } }
+  const proximity=km===null?50:Math.max(20,Math.min(100,100-(km-10)*.9));
+  return {score:Math.round(.40*rating+.25*popularity+.20*value+.15*proximity),km,parts:{rating:Math.round(rating),popularity:Math.round(popularity),value:Math.round(value),proximity:Math.round(proximity)}};
+}
 function stayCardHTML(l,near){
-  const r=+l.rating||0, amen=(l.amenities||[]).slice(0,3).join(' · '), km=near&&hasGeo(l)?distKm(near,{lat:+l.lat,lng:+l.lng}):null;
-  return `<article class="card pad list-card filterable" data-price="${+l.price}" data-rating="${r}" data-score="${+l.score||75}" data-region="${esc(l.region||'')}" data-id="${esc(l.id)}" data-lat="${hasGeo(l)?+l.lat:''}" data-lng="${hasGeo(l)?+l.lng:''}" data-dist="${km===null?'':km.toFixed(1)}" data-amenities="${amenSlugs(l.amenities).join(',')}"><div class="photo" style="${bgStyle(coverOf(l))}"></div><div><div class="eyebrow">Smart score ${+l.score||75}</div><h3>${esc(l.name)}</h3><div class="rating">${r?`${stars(r)} <span class="small">${r.toFixed(1)} · ${l.reviews||0} reviews</span>`:'<span class="small">New listing · no reviews yet</span>'}</div><p class="small">${esc(l.location)}${amen?' · '+esc(amen):''}</p>${km!==null?`<p class="small" style="color:var(--forest);font-weight:700">◉ ${fmtKm(km)} away</p>`:''}</div><div><div class="price">KES ${Math.round(l.price).toLocaleString('en-KE')}<small>/night</small></div><a class="btn btn-sm" href="details.html?id=${encodeURIComponent(l.id)}">View stay</a></div></article>`;
+  const r=+l.rating||0, amen=(l.amenities||[]).slice(0,3).join(' · '), km=near&&hasGeo(l)?distKm(near,{lat:+l.lat,lng:+l.lng}):null, sc=smartScore(l,near);
+  return `<article class="card pad list-card filterable" data-price="${+l.price}" data-rating="${r}" data-score="${sc.score}" data-region="${esc(l.region||'')}" data-id="${esc(l.id)}" data-lat="${hasGeo(l)?+l.lat:''}" data-lng="${hasGeo(l)?+l.lng:''}" data-dist="${km===null?'':km.toFixed(1)}" data-amenities="${amenSlugs(l.amenities).join(',')}"><div class="photo" style="${bgStyle(coverOf(l))}"></div><div><div class="eyebrow">Smart score ${sc.score}</div><h3>${esc(l.name)}</h3><div class="rating">${r?`${stars(r)} <span class="small">${r.toFixed(1)} · ${l.reviews||0} reviews</span>`:'<span class="small">New listing · no reviews yet</span>'}</div><p class="small">${esc(l.location)}${amen?' · '+esc(amen):''}</p>${km!==null?`<p class="small" style="color:var(--forest);font-weight:700">◉ ${fmtKm(km)} away</p>`:''}</div><div><div class="price">KES ${Math.round(l.price).toLocaleString('en-KE')}<small>/night</small></div><a class="btn btn-sm" href="details.html?id=${encodeURIComponent(l.id)}">View stay</a></div></article>`;
 }
 function attractionCardHTML(a){
   return `<article class="card"><div class="photo" style="${bgStyle(coverOf(a))}"></div><div class="pad"><div class="eyebrow">${esc(a.category)} · ${esc(a.county)}</div><h3>${esc(a.name)}</h3><p class="small">${esc(a.tagline||'')}</p>${a._km!==undefined?`<p class="small" style="color:var(--forest);font-weight:700">◉ ${fmtKm(a._km)} away</p>`:''}<a class="btn btn-sm" href="attraction-details.html?id=${encodeURIComponent(a.id)}">Explore attraction</a></div></article>`;
@@ -610,6 +617,17 @@ const hostBookings = ()=>{ const ids=new Set(hostListings().map(l=>l.id)); retur
 const addDays = (d,n)=>{ const t=new Date(d+'T00:00:00Z'); t.setUTCDate(t.getUTCDate()+n); return t.toISOString().slice(0,10); };
 const bookingState = b=>b.status==='cancelled'?'cancelled':((b.completed||b.checkout<todayISO())?'completed':'confirmed');
 const BK_BADGE = { confirmed:'<span class="status success">Confirmed</span>', completed:'<span class="status info">Completed</span>', cancelled:'<span class="status danger">Cancelled</span>' };
+const PAY_METHODS = { cash:'Pay on arrival (cash)', bank:'Bank transfer', mpesa:'M-Pesa (sent manually)' };
+const payBadge = b=>({pending:'<span class="status warning">Awaiting payment</span>',paid:'<span class="status success">Paid</span>',refunded:'<span class="status info">Refunded</span>',cancelled:'<span class="status info">Not charged</span>'}[b.payment]||'<span class="status info">—</span>');
+function payHelp(b){
+  const host=getAccounts().find(a=>a.id===b.hostId), hn=host?host.name:'your host', amt=`<strong>${money(b.total)}</strong>`;
+  if(b.payment==='paid') return `Payment confirmed by ${esc(hn)}${b.paidAt?' on '+longDate(b.paidAt):''}. Thank you!`;
+  if(b.payment==='refunded') return 'This booking was cancelled and the payment is marked as refunded.';
+  if(b.payment==='cancelled') return 'This booking was cancelled. You were not charged.';
+  if(b.payMethod==='bank') return `Pay ${amt} by bank transfer. ${esc(hn)} will message you their bank details; use <strong>${esc(b.ref)}</strong> as the reference${b.payRef?` (you noted: ${esc(b.payRef)})`:''}. When your host confirms they received it, this changes to Paid.`;
+  if(b.payMethod==='mpesa') return `Send ${amt} by M-Pesa to ${esc(hn)}${host&&host.phone?' on <strong>'+esc(host.phone)+'</strong>':' (they will message you their number)'} using <strong>${esc(b.ref)}</strong> as the reference${b.payRef?`. You entered the M-Pesa code <strong>${esc(b.payRef)}</strong>`:''}. When your host confirms they received it, this changes to Paid.`;
+  return `Pay ${amt} in cash to ${esc(hn)} when you arrive. Your host marks it as paid and this updates.`;
+}
 const fmtRange = b=>`${fmtDate(b.checkin)} – ${fmtDate(b.checkout)}`;
 const fmtStamp = t=>new Date(t).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
 const joinedOf = a=>a.created||+((String(a.id).match(/\d{10,}/)||[0])[0]);
@@ -629,7 +647,7 @@ function addBooking(b){
 }
 function cancelBooking(ref,by){
   const all=getAllBookings(), b=all.find(x=>x.ref===ref); if(!b || b.status==='cancelled') return false;
-  b.status='cancelled'; b.cancelledBy=by; b.payment='refunded'; b.cancelledAt=Date.now();
+  b.status='cancelled'; b.cancelledBy=by; b.payment=(b.payment==='paid'?'refunded':'cancelled'); b.cancelledAt=Date.now();
   if(!saveAllBookings(all)) return false;
   const L=getListings(), l=L.find(x=>x.id===b.stayId); if(l){ l.bookings=Math.max(0,(l.bookings||0)-1); saveListings(L); }
   return true;
@@ -641,10 +659,11 @@ function completeBooking(){
   const l=listingById(d.stayId||'karura-house');
   if(!l || l.status!=='approved') return 'This stay is not open for booking right now.';
   if(!d.checkin || !d.checkout || nightsBetween(d.checkin,d.checkout)<1) return 'Please choose valid dates.';
+  const mEl=document.querySelector('input[name=method]:checked'); if(!mEl) return 'Please choose how you will pay the host.';
   const c=stayConflict(l.id,d.checkin,d.checkout); if(c) return c;
   const p=priceOf(Object.assign({},d,{price:l.price})), taken=new Set(getAllBookings().map(b=>b.ref)); let ref;
   do{ ref='SE-'+new Date().getFullYear()+'-'+String(Math.floor(1000+Math.random()*9000)); }while(taken.has(ref));
-  const b={ref,stayId:l.id,stay:l.name,place:l.location,hostId:l.ownerId,checkin:d.checkin,checkout:d.checkout,guests:d.guests||'2 guests',nights:p.n,subtotal:p.sub,fee:p.fee,total:p.total,status:'confirmed',payment:'paid',guestId:s.id,guestName:s.name,guestEmail:s.email,phone:d.phone||'',created:Date.now()};
+  const b={ref,stayId:l.id,stay:l.name,place:l.location,hostId:l.ownerId,checkin:d.checkin,checkout:d.checkout,guests:d.guests||'2 guests',nights:p.n,subtotal:p.sub,fee:p.fee,total:p.total,status:'confirmed',payment:'pending',payMethod:mEl.value,payRef:((document.querySelector('[name=reference]')||{}).value||'').trim().slice(0,40),guestId:s.id,guestName:s.name,guestEmail:s.email,phone:d.phone||'',created:Date.now()};
   if(!addBooking(b)) return QUOTA_MSG;
   ss.del(K.draft); return '';
 }
@@ -655,7 +674,7 @@ function initTouristBookings(){
   const draw=()=>{
     const list=userBookings().sort((a,b)=>b.created-a.created), today=todayISO();
     body.innerHTML=list.length?list.map(b=>{ const st=bookingState(b);
-      return `<tr><td><strong>${esc(b.stay)}</strong><div class="small">${esc(b.place)} · ${esc(b.ref)}</div></td><td>${fmtRange(b)}</td><td>${esc(parseInt(b.guests)||1)}</td><td>${money(b.total)}</td><td>${BK_BADGE[st]}</td><td class="row-actions"><a class="home-link" href="confirmation.html?ref=${encodeURIComponent(b.ref)}">View</a>${st==='completed'?` · <a class="home-link" href="review.html?ref=${encodeURIComponent(b.ref)}">${reviewsFor(b.ref).some(r=>r.dir==='guest')?'Your review':'Review'}</a>`:''}${st==='confirmed'?` · <button type="button" class="link-danger" style="color:var(--forest)" data-complete="${esc(b.ref)}" title="Demo shortcut: pretend the stay has finished so you can try reviews">Mark completed (demo)</button>`:''}${st==='confirmed'&&b.checkin>=today?` · <button type="button" class="link-danger" data-cancel="${esc(b.ref)}">Cancel</button>`:''} · <a class="home-link" href="messages.html?stay=${encodeURIComponent(b.stayId)}">Message host</a> · <a class="home-link" href="report.html?ref=${encodeURIComponent(b.ref)}">Report</a></td></tr>`; }).join('')
+      return `<tr><td><strong>${esc(b.stay)}</strong><div class="small">${esc(b.place)} · ${esc(b.ref)}</div></td><td>${fmtRange(b)}</td><td>${esc(parseInt(b.guests)||1)}</td><td>${money(b.total)}</td><td>${BK_BADGE[st]}<div class="small" style="margin-top:4px">${payBadge(b)}</div>${st==='completed'?`<div class="small" style="margin-top:4px">${esc(revealLine(b.ref,'guest'))}</div>`:''}</td><td class="row-actions"><a class="home-link" href="confirmation.html?ref=${encodeURIComponent(b.ref)}">View</a>${st==='completed'?` · <a class="home-link" href="review.html?ref=${encodeURIComponent(b.ref)}">${reviewsFor(b.ref).some(r=>r.dir==='guest')?'Your review':'Review'}</a>`:''}${st==='confirmed'?` · <button type="button" class="link-danger" style="color:var(--forest)" data-complete="${esc(b.ref)}" title="Demo shortcut: pretend the stay has finished so you can try reviews">Mark completed (demo)</button>`:''}${st==='confirmed'&&b.checkin>=today?` · <button type="button" class="link-danger" data-cancel="${esc(b.ref)}">Cancel</button>`:''} · <a class="home-link" href="messages.html?stay=${encodeURIComponent(b.stayId)}">Message host</a> · <a class="home-link" href="report.html?ref=${encodeURIComponent(b.ref)}">Report</a></td></tr>`; }).join('')
       :`<tr><td colspan="6" class="small" style="padding:24px">You have no bookings yet. <a class="home-link" href="search.html">Find a stay</a></td></tr>`;
     const n=k=>list.filter(b=>bookingState(b)===k).length, set=(k,v)=>document.querySelectorAll(`[data-bind="${k}"]`).forEach(e=>e.textContent=v);
     set('upcoming',`${n('confirmed')} trip${n('confirmed')===1?'':'s'}`); set('history',`${n('completed')} stay${n('completed')===1?'':'s'}`);
@@ -671,7 +690,7 @@ function initHostBookings(){
   const draw=()=>{
     const list=hostBookings().sort((a,b)=>b.created-a.created);
     body.innerHTML=list.length?list.map(b=>{ const st=bookingState(b);
-      return `<tr><td><strong>${esc(b.guestName)}</strong><div class="small">${esc(b.guestEmail||'')}${b.phone?' · '+esc(b.phone):''}</div></td><td>${esc(b.stay)}<div class="small">${esc(b.ref)}</div></td><td>${fmtRange(b)}</td><td>${money(b.total)}<div class="small">${b.nights||nightsBetween(b.checkin,b.checkout)} nights · ${esc(b.guests)}</div></td><td>${BK_BADGE[st]}</td><td class="row-actions">${st==='confirmed'?`<button type="button" class="btn btn-outline btn-sm" data-cancel="${esc(b.ref)}">Cancel</button> `:''}${st==='completed'?'<a class="home-link" href="host-reviews.html">Review guest</a> · ':''}<a class="home-link" href="host-messages.html?stay=${encodeURIComponent(b.stayId)}&guest=${encodeURIComponent(b.guestId)}">Message</a> · <a class="home-link" href="host-report-incident.html?ref=${encodeURIComponent(b.ref)}">Report</a></td></tr>`; }).join('')
+      return `<tr><td><strong>${esc(b.guestName)}</strong><div class="small">${esc(b.guestEmail||'')}${b.phone?' · '+esc(b.phone):''}</div></td><td>${esc(b.stay)}<div class="small">${esc(b.ref)}</div></td><td>${fmtRange(b)}</td><td>${money(b.total)}<div class="small">${b.nights||nightsBetween(b.checkin,b.checkout)} nights · ${esc(b.guests)}</div></td><td>${BK_BADGE[st]}<div class="small" style="margin-top:4px">${payBadge(b)}</div>${st==='completed'?`<div class="small" style="margin-top:4px">${esc(revealLine(b.ref,'host'))}</div>`:''}</td><td class="row-actions">${st==='confirmed'?`<button type="button" class="btn btn-outline btn-sm" data-cancel="${esc(b.ref)}">Cancel</button> `:''}${st==='completed'?'<a class="home-link" href="host-reviews.html">Review guest</a> · ':''}<a class="home-link" href="host-messages.html?stay=${encodeURIComponent(b.stayId)}&guest=${encodeURIComponent(b.guestId)}">Message</a> · <a class="home-link" href="host-report-incident.html?ref=${encodeURIComponent(b.ref)}&type=guest">Flag guest</a> · <a class="home-link" href="host-report-incident.html?ref=${encodeURIComponent(b.ref)}">Report</a></td></tr>`; }).join('')
       :`<tr><td colspan="6" class="small" style="padding:24px">No bookings yet. When a guest books one of your stays it appears here straight away.</td></tr>`;
     const n=k=>list.filter(b=>bookingState(b)===k).length;
     setStat('bk-upcoming',n('confirmed')); setStat('bk-done',n('completed')); setStat('bk-cancelled',n('cancelled'));
@@ -681,19 +700,28 @@ function initHostBookings(){
 }
 function initHostPayments(){
   const body=document.querySelector('[data-host-payments]'); if(!body) return;
-  const list=hostBookings().sort((a,b)=>b.created-a.created), paid=list.filter(b=>b.payment==='paid');
-  body.innerHTML=list.length?list.map(b=>`<tr><td>${esc(b.ref)}</td><td>${esc(b.guestName)}</td><td>${fmtStamp(b.created)}</td><td>${esc(b.stay)}</td><td>${money(b.total)}</td><td>${b.payment==='paid'?'<span class="status success">Paid</span>':'<span class="status warning">Refunded</span>'}</td></tr>`).join('')
-    :`<tr><td colspan="6" class="small" style="padding:24px">No payments yet.</td></tr>`;
-  const gross=paid.reduce((t,b)=>t+b.total,0), fees=paid.reduce((t,b)=>t+(b.fee||0),0);
-  setStat('pay-gross',money(gross)); setStat('pay-fees',money(fees)); setStat('pay-earn',money(gross-fees));
+  const draw=()=>{
+    const list=hostBookings().sort((a,b)=>b.created-a.created), live=list.filter(b=>b.status!=='cancelled');
+    body.innerHTML=list.length?list.map(b=>`<tr><td>${esc(b.ref)}</td><td>${esc(b.guestName)}</td><td>${fmtStamp(b.created)}</td><td>${esc(b.stay)}</td><td>${esc(PAY_METHODS[b.payMethod]||'—')}${b.payRef?`<div class="small">Ref: ${esc(b.payRef)}</div>`:''}</td><td>${money(b.total)}</td><td>${payBadge(b)}</td><td>${b.status==='cancelled'?'':b.payment==='paid'?`<button type="button" class="link-danger" data-pay="pending" data-ref="${esc(b.ref)}">Mark unpaid</button>`:`<button type="button" class="btn btn-sm" data-pay="paid" data-ref="${esc(b.ref)}">Mark as paid</button>`}</td></tr>`).join('')
+      :`<tr><td colspan="8" class="small" style="padding:24px">No payments yet. Bookings appear here as soon as a guest books.</td></tr>`;
+    const paid=live.filter(b=>b.payment==='paid'), pend=live.filter(b=>b.payment==='pending'), gross=paid.reduce((t,b)=>t+b.total,0), fees=paid.reduce((t,b)=>t+(b.fee||0),0);
+    setStat('pay-gross',money(gross)); setStat('pay-fees',money(fees)); setStat('pay-earn',money(gross-fees)); setStat('pay-pending',money(pend.reduce((t,b)=>t+b.total,0)));
+  };
+  body.addEventListener('click',e=>{
+    const b=e.target.closest('[data-pay]'); if(!b) return; const all=getAllBookings(), bk=all.find(x=>x.ref===b.dataset.ref); if(!bk||bk.status==='cancelled') return;
+    if(b.dataset.pay==='pending' && !confirm('Mark this payment as not received?')) return;
+    bk.payment=b.dataset.pay; bk.paidAt=bk.payment==='paid'?Date.now():null;
+    if(saveAllBookings(all)){ draw(); showToast(bk.payment==='paid'?'Payment marked as received. The guest can now see it as Paid.':'Payment marked as awaiting'); }
+  });
+  draw();
 }
 function initHostDashboard(){
   if(!document.querySelector('[data-stat="host-active"]')) return;
   const mine=hostListings(), a=mine.filter(l=>l.status==='approved').length, p=mine.filter(l=>l.status==='pending'||l.status==='review').length;
   setStat('host-active',a); setStat('host-active-sub',`${a} approved · ${p} pending`); setStat('host-pending',`${p} listing${p===1?'':'s'}`);
-  const B=hostBookings(), live=B.filter(b=>bookingState(b)==='confirmed'), paid=B.filter(b=>b.payment==='paid');
+  const B=hostBookings(), live=B.filter(b=>bookingState(b)==='confirmed'), paid=B.filter(b=>b.payment==='paid'), pendAmt=B.filter(b=>b.payment==='pending'&&b.status!=='cancelled').reduce((t,b)=>t+b.total,0);
   setStat('host-upcoming',live.length); setStat('host-upcoming-sub',`${B.length} booking${B.length===1?'':'s'} in total`);
-  setStat('host-income',money(paid.reduce((t,b)=>t+b.total-(b.fee||0),0))); setStat('host-income-sub',`From ${paid.length} paid booking${paid.length===1?'':'s'}`);
+  setStat('host-income',money(paid.reduce((t,b)=>t+b.total-(b.fee||0),0))); setStat('host-income-sub',`From ${paid.length} paid booking${paid.length===1?'':'s'}${pendAmt?' · '+money(pendAmt)+' awaiting':''}`);
   const rated=mine.filter(l=>+l.rating>0), rv=rated.reduce((t,l)=>t+(l.reviews||0),0), avg=rv?rated.reduce((t,l)=>t+l.rating*(l.reviews||0),0)/rv:0;
   setStat('host-rating',avg?avg.toFixed(1):'New'); setStat('host-rating-sub',`${rv} guest review${rv===1?'':'s'}`);
   const body=document.querySelector('[data-host-recent]');
@@ -757,7 +785,8 @@ function initAdminUsers(){
     const rows=accs.filter(a=>f==='all'||a.role===f).sort((a,b)=>joinedOf(b)-joinedOf(a));
     body.innerHTML=rows.map(a=>{
       const owned=new Set(L.filter(l=>l.ownerId===a.id).map(l=>l.id));
-      const act=a.role==='host'?`${owned.size} listing${owned.size===1?'':'s'} · ${B.filter(b=>owned.has(b.stayId)).length} bookings`:a.role==='tourist'?`${B.filter(b=>b.guestId===a.id).length} booking${B.filter(b=>b.guestId===a.id).length===1?'':'s'}`:'—';
+      const flags=a.role==='tourist'?getIncidents().filter(i=>i.againstId===a.id&&i.reporterRole==='host').length:0;
+      const act=a.role==='host'?`${owned.size} listing${owned.size===1?'':'s'} · ${B.filter(b=>owned.has(b.stayId)).length} bookings`:a.role==='tourist'?`${B.filter(b=>b.guestId===a.id).length} booking${B.filter(b=>b.guestId===a.id).length===1?'':'s'}${flags?` · <span style="color:var(--danger);font-weight:700">${flags} host flag${flags===1?'':'s'}</span>`:''}`:'—';
       const j=joinedOf(a);
       return `<tr><td><strong>${esc(a.name)}</strong>${a.sample?' <span class="small">· sample</span>':''}</td><td>${esc(a.email)}</td><td>${esc(roleLabel(a.role))}</td><td>${j?fmtStamp(j):'—'}</td><td class="small">${act}</td><td>${a.suspended?'<span class="status danger">Suspended</span>':'<span class="status success">Active</span>'}</td><td>${a.role==='admin'||a.id===me.id?'':`<button type="button" class="btn ${a.suspended?'':'btn-danger '}btn-sm" data-susp="${esc(a.id)}">${a.suspended?'Reactivate':'Suspend'}</button>`}</td></tr>`; }).join('')||`<tr><td colspan="7" class="small" style="padding:24px">No users match.</td></tr>`;
     setStat('u-total',accs.length); setStat('u-hosts',accs.filter(a=>a.role==='host').length); setStat('u-tourists',accs.filter(a=>a.role==='tourist').length);
@@ -809,7 +838,7 @@ const SEED_INCIDENTS = [
 ];
 const CRITICAL_TYPES = ['Theft','Abuse or harassment','Physical safety or assault'];
 const TOURIST_INCIDENT_TYPES = [...CRITICAL_TYPES,'Property damage','Fraud / payment issue','Misleading listing','House rule issue','Other'];
-const HOST_INCIDENT_TYPES = [...CRITICAL_TYPES,'Property damage','Fraudulent booking','No-show','House rule breach','Other'];
+const HOST_INCIDENT_TYPES = [...CRITICAL_TYPES,'Property damage','Fraudulent booking','No-show','House rule breach','Guest conduct concern','Other'];
 const INC_STATUS = { open:['danger','Open'], investigating:['warning','Investigating'], resolved:['success','Resolved'], dismissed:['info','Dismissed'] };
 const incBadge = i=>`<span class="status ${INC_STATUS[i.status][0]}">${INC_STATUS[i.status][1]}</span>`;
 const sevBadge = i=>i.severity==='critical'?'<span class="status danger">Critical</span>':'<span class="status info">Standard</span>';
@@ -855,7 +884,31 @@ function bindStars(root){
   root.addEventListener('click',e=>{ const b=e.target.closest('[data-star]'); if(!b) return; const g=b.closest('[data-stars]'), n=+b.dataset.star; g.querySelector('[name=rating]').value=n; g.querySelectorAll('[data-star]').forEach(x=>x.classList.toggle('active',+x.dataset.star<=n)); });
 }
 const CAT_SCORE = {Excellent:5,Good:4,Fair:3};
+function revealLine(ref,role){
+  const rs=reviewsFor(ref), g=rs.some(r=>r.dir==='guest'), h=rs.some(r=>r.dir==='host');
+  if(g&&h) return 'Both reviews are revealed';
+  if(role==='guest') return g?'Your review is sealed. Waiting for the host to review.':h?'The host has reviewed. Submit yours to reveal both.':'Review not written yet';
+  return h?'Your review is sealed. Waiting for the guest to review.':g?'The guest has reviewed. Submit yours to reveal both.':'Review not written yet';
+}
 const sealedNote = (who,b)=>`Sealed. It will be revealed when ${who} submits theirs, or on ${longDate(windowEnd(b))} when the review window closes.`;
+
+/* Rule-based indicators to help moderators prioritise. They are signals, not proof, and nothing is removed automatically. */
+function reviewRisk(r,all){
+  let pts=0; const why=[]; const add=(n,t)=>{ pts+=n; why.push(t); };
+  const text=String(r.text||''), L=listingById(r.stayId);
+  if(r.flagged) add(30,'Reported by the host');
+  if(/(https?:\/\/|www\.|[\w.+-]+@[\w-]+\.\w+|\b\d[\d\s-]{8,}\d\b)/i.test(text)) add(25,'Contains a link, email or phone number');
+  if(r.dir==='guest' && /refund|payment|paid|scam|fraud/i.test(text) && text.length<200) add(15,'Mentions payment or fraud rather than the stay');
+  if(all.some(x=>x.id!==r.id && x.dir===r.dir && x.text.trim().toLowerCase()===text.trim().toLowerCase())) add(35,'Identical text appears in another review');
+  if(all.some(x=>x.id!==r.id && x.authorId && x.authorId===r.authorId && Math.abs(x.created-r.created)<10*60000)) add(20,'Author posted several reviews within minutes');
+  if(text.length<25) add(10,'Very short review');
+  if(text.length>20 && text.replace(/[^A-Za-z]/g,'').length && text.replace(/[^A-Z]/g,'').length/text.replace(/[^A-Za-z]/g,'').length>.6) add(10,'Mostly capital letters');
+  if(r.dir==='guest' && (r.rating===1||r.rating===5) && text.length<40) add(10,'Extreme rating with little detail');
+  if(r.dir==='guest' && L && +L.rating>0 && Math.abs(r.rating-L.rating)>=3) add(10,'Far from the listing\'s average rating');
+  const au=r.authorId&&getAccounts().find(a=>a.id===r.authorId); if(au && joinedOf(au) && r.created-joinedOf(au)<864e5) add(10,'Account created less than a day before the review');
+  pts=Math.min(100,pts); return {score:pts,level:pts>=50?'High':pts>=25?'Medium':'Low',why};
+}
+const riskBadge=k=>`<span class="status ${k.level==='High'?'danger':k.level==='Medium'?'warning':'info'}" title="${esc(k.why.join('; ')||'No risk signals')}">${k.level} · ${k.score}</span>`;
 
 /* ---------- tourist: write a verified review ---------- */
 function initReviewPage(){
@@ -880,7 +933,7 @@ function initReviewPage(){
     right=`<div class="grid"><div><div class="eyebrow">Your review</div><div class="rating">${stars(own.rating)}</div><p>${esc(own.text)}</p></div>${shown?`<div class="notice"><strong>Revealed.</strong> Your review is now public on the listing.</div>${other?`<div class="card pad"><div class="eyebrow">${esc(firstName(hostName))}'s review of you</div><div class="rating">${stars(other.rating)}</div><p>${esc(other.text)}</p></div>`:''}`:`<div class="notice"><strong>Sealed.</strong> ${sealedNote(esc(firstName(hostName)),b)}</div>`}</div>`;
   }
   else if(!windowOpen(b)) right=`<div class="notice">The review window for this stay closed on ${longDate(windowEnd(b))}.</div>`;
-  else right=`<div class="grid" data-review-form data-ref="${esc(ref)}"><div class="field"><label>OVERALL RATING</label>${starPicker()}</div><div class="field"><label>YOUR REVIEW</label><textarea name="text" placeholder="How was your stay?"></textarea></div><div class="grid grid-2">${['Cleanliness','Location','Communication','Value'].map(c=>`<div class="field"><label>${c.toUpperCase()}</label><select name="c-${c.toLowerCase()}"><option>Excellent</option><option>Good</option><option>Fair</option></select></div>`).join('')}</div><div class="notice">Verified stay. Reviews are sealed until the host has also submitted theirs (or ${REVIEW_WINDOW_DAYS} days pass), so neither side can influence the other. Public reviews show your first name only.</div><div class="form-error" role="alert" hidden></div><button type="button" class="btn" data-submit-review>Submit review</button></div>`;
+  else right=`<div class="grid" data-review-form data-ref="${esc(ref)}">${other?`<div class="notice"><strong>${esc(firstName(hostName))} has already reviewed this stay.</strong> Their review stays hidden until you submit yours, so neither of you can influence the other.</div>`:''}<div class="field"><label>OVERALL RATING</label>${starPicker()}</div><div class="field"><label>YOUR REVIEW</label><textarea name="text" placeholder="How was your stay?"></textarea></div><div class="grid grid-2">${['Cleanliness','Location','Communication','Value'].map(c=>`<div class="field"><label>${c.toUpperCase()}</label><select name="c-${c.toLowerCase()}"><option>Excellent</option><option>Good</option><option>Fair</option></select></div>`).join('')}</div><div class="notice">Verified stay. Reviews are sealed until the host has also submitted theirs (or ${REVIEW_WINDOW_DAYS} days pass), so neither side can influence the other. Public reviews show your first name only.</div><div class="form-error" role="alert" hidden></div><button type="button" class="btn" data-submit-review>Submit review</button></div>`;
   root.innerHTML=`${head}<p class="sub">Your review is tied to this completed booking.</p><div class="card pad" style="max-width:930px;margin-top:22px"><div class="grid grid-2">${left}${right}</div></div>`;
   const btn=root.querySelector('[data-submit-review]');
   if(btn) btn.addEventListener('click',()=>submitGuestReview(root.querySelector('[data-review-form]')));
@@ -914,7 +967,7 @@ function initHostReviews(){
     root.innerHTML=`<div class="card table-wrap"><table><thead><tr><th>Guest</th><th>Property</th><th>Rating</th><th>Review</th><th>Date</th><th>Status</th></tr></thead><tbody>${rows||'<tr><td colspan="6" class="small" style="padding:24px">No guest reviews yet.</td></tr>'}</tbody></table></div>
     <div class="grid grid-3" style="margin-top:18px"><div class="kpi"><strong>${avg?avg.toFixed(1):'—'}</strong><span class="small">Average of published reviews</span></div><div class="kpi"><strong>${pub.length}</strong><span class="small">Published reviews</span></div><div class="kpi"><strong>${pend.length}</strong><span class="small">Guests awaiting your review</span></div></div>
     <h2 style="margin-top:30px">Review your guests</h2><p class="small">After a completed stay you can review the guest. Both reviews stay sealed until you have each submitted yours (or ${REVIEW_WINDOW_DAYS} days pass).</p>
-    <div class="grid grid-2" style="margin-top:12px">${pend.map(b=>`<div class="card pad" data-host-review data-ref="${esc(b.ref)}"><strong>${esc(b.guestName)}</strong><div class="small">${esc(b.stay)} · ${fmtRange(b)} · ${esc(b.ref)}</div><div class="field" style="margin-top:12px"><label>RATING</label>${starPicker()}</div><div class="field" style="margin-top:10px"><label>YOUR REVIEW OF THE GUEST</label><textarea name="text" placeholder="Communication, respect for house rules, care of the property…"></textarea></div><div class="form-error" role="alert" hidden></div><button type="button" class="btn btn-sm" style="margin-top:10px" data-submit-host-review>Submit review</button></div>`).join('')||'<div class="card pad empty"><p class="small">No completed stays are waiting for your review.</p></div>'}</div>
+    <div class="grid grid-2" style="margin-top:12px">${pend.map(b=>`<div class="card pad" data-host-review data-ref="${esc(b.ref)}"><strong>${esc(b.guestName)}</strong><div class="small">${esc(b.stay)} · ${fmtRange(b)} · ${esc(b.ref)}</div><div class="small" style="color:var(--forest);font-weight:700;margin-top:4px">${esc(revealLine(b.ref,'host'))}</div><div class="field" style="margin-top:12px"><label>RATING</label>${starPicker()}</div><div class="field" style="margin-top:10px"><label>YOUR REVIEW OF THE GUEST</label><textarea name="text" placeholder="Communication, respect for house rules, care of the property…"></textarea></div><div class="form-error" role="alert" hidden></div><button type="button" class="btn btn-sm" style="margin-top:10px" data-submit-host-review>Submit review</button></div>`).join('')||'<div class="card pad empty"><p class="small">No completed stays are waiting for your review.</p></div>'}</div>
     ${given.length?`<h3 style="margin-top:26px">Your reviews of guests</h3><div class="card table-wrap"><table><thead><tr><th>Guest</th><th>Stay</th><th>Rating</th><th>Status</th></tr></thead><tbody>${given.map(r=>{ const b=bookingByRef(r.ref); return `<tr><td>${esc(b?b.guestName:'Guest')}</td><td>${esc((listingById(r.stayId)||{}).name||'')}</td><td class="rating">${stars(r.rating)}</td><td>${isRevealed(r.ref)?'<span class="status success">Revealed</span>':'<span class="status warning">Sealed</span>'}</td></tr>`; }).join('')}</tbody></table></div>`:''}`;
   };
   root.addEventListener('click',e=>{
@@ -941,10 +994,11 @@ function initAdminReviews(){
   const filter=document.querySelector('#reviewFilter');
   const draw=()=>{
     const all=getReviews(), f=filter?filter.value:'all';
-    const rows=all.filter(r=>f==='all'||(f==='flagged'&&r.flagged&&r.modStatus==='ok')||(f==='sealed'&&!isRevealed(r.ref)&&r.modStatus==='ok')||(f==='hidden'&&r.modStatus!=='ok')).sort((a,b)=>(!!b.flagged-!!a.flagged)||b.created-a.created);
-    body.innerHTML=rows.map(r=>{ const [c,lbl]=reviewVisibility(r), id=esc(r.id);
+    const risk=new Map(all.map(r=>[r.id,reviewRisk(r,all)]));
+    const rows=all.filter(r=>f==='all'||(f==='risk'&&risk.get(r.id).level==='High'&&r.modStatus==='ok')||(f==='flagged'&&r.flagged&&r.modStatus==='ok')||(f==='sealed'&&!isRevealed(r.ref)&&r.modStatus==='ok')||(f==='hidden'&&r.modStatus!=='ok')).sort((a,b)=>(!!b.flagged-!!a.flagged)||(risk.get(b.id).score-risk.get(a.id).score)||b.created-a.created);
+    body.innerHTML=rows.map(r=>{ const [c,lbl]=reviewVisibility(r), id=esc(r.id), k=risk.get(r.id);
       const acts=(r.modStatus==='ok'?`<button type="button" class="btn btn-outline btn-sm" data-mod="hidden" data-id="${id}">Hide</button> `:`<button type="button" class="btn btn-outline btn-sm" data-mod="ok" data-id="${id}">Restore</button> `)+(r.modStatus!=='removed'?`<button type="button" class="btn btn-danger btn-sm" data-mod="removed" data-id="${id}">Remove</button> `:'')+(r.flagged?`<button type="button" class="link-danger" style="color:var(--forest)" data-mod="unflag" data-id="${id}">Dismiss flag</button>`:'');
-      return `<tr><td>${esc(r.authorName)}<div class="small">${r.dir==='guest'?'Guest → listing':'Host → guest'}${r.seed?' · sample':' · verified stay'}</div></td><td>${esc((listingById(r.stayId)||{}).name||'')}</td><td>${r.rating}</td><td>${esc(r.text)}${r.flagged?`<div class="small" style="color:var(--danger)">Reported: ${esc(r.flagReason||'')}</div>`:''}</td><td><span class="status ${c}">${lbl}</span></td><td class="row-actions">${acts}</td></tr>`; }).join('')||'<tr><td colspan="6" class="small" style="padding:24px">No reviews match.</td></tr>';
+      return `<tr><td>${esc(r.authorName)}<div class="small">${r.dir==='guest'?'Guest → listing':'Host → guest'}${r.seed?' · sample':' · verified stay'}</div></td><td>${esc((listingById(r.stayId)||{}).name||'')}</td><td>${r.rating}</td><td>${esc(r.text)}${r.flagged?`<div class="small" style="color:var(--danger)">Reported: ${esc(r.flagReason||'')}</div>`:''}</td><td>${riskBadge(k)}<div class="small" style="margin-top:4px">${esc(k.why.slice(0,2).join('; ')||'No risk signals')}</div></td><td><span class="status ${c}">${lbl}</span></td><td class="row-actions">${acts}</td></tr>`; }).join('')||'<tr><td colspan="7" class="small" style="padding:24px">No reviews match.</td></tr>';
     setStat('rv-flagged',all.filter(r=>r.flagged&&r.modStatus==='ok').length); setStat('rv-published',all.filter(r=>r.modStatus==='ok'&&isRevealed(r.ref)).length); setStat('rv-sealed',all.filter(r=>r.modStatus==='ok'&&!isRevealed(r.ref)).length); setStat('rv-removed',all.filter(r=>r.modStatus!=='ok').length);
   };
   body.addEventListener('click',e=>{
@@ -967,6 +1021,7 @@ function initIncidentForm(){
   opts+=bks.map(b=>`<option value="${esc(b.ref)}">${esc(b.ref)} · ${esc(b.stay)}${role==='host'?' · '+esc(b.guestName):''} · ${fmtRange(b)}</option>`).join('');
   sel.innerHTML=opts; sel.value=params.get('ref')&&bks.some(b=>b.ref===params.get('ref'))?params.get('ref'):(sl?'stay:'+sl.id:'');
   typeSel.innerHTML=(role==='host'?HOST_INCIDENT_TYPES:TOURIST_INCIDENT_TYPES).map(t=>`<option>${t}${CRITICAL_TYPES.includes(t)?' (critical)':''}</option>`).join('');
+  if(params.get('type')==='guest'){ const o=[...typeSel.options].find(x=>x.text.startsWith('Guest conduct')); if(o) typeSel.value=o.value; }
   const note=form.querySelector('[data-critical-note]'), upd=()=>{ note.hidden=!/\(critical\)/.test(typeSel.value); }; typeSel.addEventListener('change',upd); upd();
   drawMyIncidents();
 }
@@ -975,7 +1030,7 @@ function drawMyIncidents(){
   const mine=getIncidents().filter(i=>i.reporterId===s.id).sort((a,b)=>b.created-a.created);
   box.innerHTML=mine.length?mine.map(i=>`<div class="kpi" style="margin-top:8px"><strong>${esc(i.id)} · ${esc(i.type)}</strong><span class="small">${INC_STATUS[i.status][1]} · ${longDate(i.created)}</span>${i.resolution&&(i.status==='resolved'||i.status==='dismissed')?`<span class="small" style="display:block;margin-top:4px"><em>Admin: ${esc(i.resolution)}</em></span>`:''}</div>`).join(''):'<p class="small">You have not submitted any reports.</p>';
 }
-function handleIncident(form){
+async function handleIncident(form){
   const s=getSession(), role=form.dataset.role, v=n=>(form.querySelector(`[name="${n}"]`)?.value||'').trim();
   const type=v('type').replace(' (critical)',''), description=v('description'), bk=v('booking');
   if(description.length<20) return formMessage(form,'Please describe what happened (at least 20 characters) so an administrator can act on it.');
@@ -983,9 +1038,10 @@ function handleIncident(form){
   if(bk.startsWith('stay:')){ const l=listingById(bk.slice(5)); if(l){ stayId=l.id; againstName=l.name; againstId=l.ownerId; } }
   else if(bk){ const b=bookingByRef(bk); if(!b) return formMessage(form,'That booking could not be found.'); stayId=b.stayId; bookingRef=b.ref; if(role==='host'){ againstName=b.guestName; againstId=b.guestId; } else { againstName=b.stay; againstId=b.hostId; } }
   else if(role==='host') return formMessage(form,'Please choose the booking this report is about.');
-  const evidence=[...form.elements].filter(e=>e.type==='file').flatMap(i=>[...(i.files||[])]).slice(0,5).map(f=>f.name);
+  const files=[...form.elements].filter(e=>e.type==='file').flatMap(i=>[...(i.files||[])]).slice(0,5), evidence=files.map(f=>f.name);
+  let evidenceImages=[]; try{ evidenceImages=await Promise.all(files.filter(f=>/^image\//.test(f.type)).slice(0,3).map(f=>readImage(f,900,.7))); }catch(e){ return formMessage(form,e.message); }
   const all=getIncidents(), n=all.reduce((m,i)=>Math.max(m,+String(i.id).replace(/\D/g,'')||0),0)+1;
-  const inc={id:'INC-'+String(n).padStart(4,'0'),reporterId:s.id,reporterName:s.name,reporterRole:role,stayId,bookingRef,againstName:againstName||'—',againstId,type,severity:CRITICAL_TYPES.includes(type)?'critical':'standard',description,evidence,status:'open',created:Date.now(),notes:[],resolution:''};
+  const inc={id:'INC-'+String(n).padStart(4,'0'),reporterId:s.id,reporterName:s.name,reporterRole:role,stayId,bookingRef,againstName:againstName||'—',againstId,type,severity:CRITICAL_TYPES.includes(type)?'critical':'standard',description,evidence,evidenceImages,status:'open',created:Date.now(),notes:[],resolution:''};
   all.unshift(inc); if(!saveIncidents(all)) return formMessage(form,QUOTA_MSG);
   form.reset(); initIncidentForm();
   showToast(inc.severity==='critical'?`Critical report ${inc.id} sent. Administrators have been alerted.`:`Report ${inc.id} submitted`);
@@ -1007,7 +1063,7 @@ function initAdminIncidents(){
     document.querySelector('#incTitle').innerHTML=`${esc(i.id)} · ${esc(i.type)} ${sevBadge(i)}`;
     document.querySelector('#incMeta').innerHTML=`Reported ${longDate(i.created)} by <strong>${esc(i.reporterName)}</strong> (${esc(i.reporterRole)}) against <strong>${esc(i.againstName)}</strong>${i.bookingRef?` · booking ${esc(i.bookingRef)}`:''}${i.stayId?` · ${esc((listingById(i.stayId)||{}).name||'')}`:''}`;
     document.querySelector('#incDesc').textContent=i.description;
-    document.querySelector('#incEvidence').textContent=i.evidence&&i.evidence.length?'Evidence files: '+i.evidence.join(', '):'No evidence attached.';
+    document.querySelector('#incEvidence').innerHTML=(i.evidence&&i.evidence.length?'Evidence files: '+esc(i.evidence.join(', ')):'No evidence attached.')+((i.evidenceImages||[]).length?`<div class="evidence-row">${i.evidenceImages.map((d,n)=>`<a href="${d}" target="_blank" rel="noopener" title="Open full size"><img src="${d}" alt="Evidence photo ${n+1}"></a>`).join('')}</div>`:'');
     document.querySelector('#incNotes').innerHTML=(i.notes||[]).map(n=>`<div class="kpi" style="margin-top:6px"><span class="small">${longDate(n.t)} · ${esc(n.by)}</span><div>${esc(n.text)}</div></div>`).join('')||'<p class="small">No internal notes yet.</p>';
     form.querySelector('[name=status]').value=i.status; form.querySelector('[name=resolution]').value=i.resolution||''; form.querySelector('[name=note]').value='';
     const l=i.stayId&&listingById(i.stayId), host=i.againstId&&getAccounts().find(a=>a.id===i.againstId&&a.role==='host'), guest=i.reporterRole==='host'&&i.againstId&&getAccounts().find(a=>a.id===i.againstId&&a.role==='tourist');
@@ -1225,7 +1281,7 @@ function initHomeMap(){
 /* ---------- home page: featured stays + popular attractions (live from the store) ---------- */
 function initHomeSections(){
   const stays=document.querySelector('#featuredStays'), attrs=document.querySelector('#popularAttractions'); if(!stays&&!attrs) return;
-  const S=getListings().filter(l=>l.status==='approved').sort((a,b)=>(+b.score||0)-(+a.score||0));
+  const S=getListings().filter(l=>l.status==='approved').sort((a,b)=>smartScore(b).score-smartScore(a).score);
   if(stays){
     const top=[]; const seen=new Set();
     S.forEach(l=>{ const k=l.region||l.id; if(top.length<3 && !seen.has(k)){ seen.add(k); top.push(l); } }); S.forEach(l=>{ if(top.length<3 && !top.includes(l)) top.push(l); });
@@ -1436,8 +1492,14 @@ function initBookingFlow(){
   if(page==='confirmation.html'){
     const s=getSession(), ref=new URLSearchParams(location.search).get('ref'); const b=s&&(ref?getAllBookings().find(x=>x.ref===ref&&x.guestId===s.id):readJSON(ls,K.last+s.id,null));
     if(b){ const set=(k,v)=>document.querySelectorAll(`[data-bind="${k}"]`).forEach(e=>e.textContent=v);
-      set('ref',b.ref); set('checkin',fmtDate(b.checkin)); set('checkout',fmtDate(b.checkout)); set('stay',b.stay); }
+      set('ref',b.ref); set('checkin',fmtDate(b.checkin)); set('checkout',fmtDate(b.checkout)); set('stay',b.stay); set('paymethod',PAY_METHODS[b.payMethod]||'—'); set('amount',money(b.total));
+      document.querySelectorAll('[data-pay-status]').forEach(e=>e.innerHTML=payBadge(b)); document.querySelectorAll('[data-pay-help]').forEach(e=>e.innerHTML=payHelp(b)); }
   }
+}
+function initPaymentPage(){
+  const form=document.querySelector('#paymentForm'); if(!form) return;
+  const hint=form.querySelector('#payHint'), refField=form.querySelector('[data-ref-field]'), HINTS={cash:'You pay the host in cash when you arrive. They mark it as paid and the status updates here.',bank:'After booking, the host sends you their bank details. Transfer the amount, then add your bank reference below if you like.',mpesa:'After booking, send the amount to the host by M-Pesa and enter the M-Pesa confirmation code below so they can match it.'};
+  form.querySelectorAll('input[name=method]').forEach(r=>r.addEventListener('change',()=>{ hint.textContent=HINTS[r.value]; hint.hidden=false; refField.hidden=r.value==='cash'; form.querySelectorAll('.pay-method').forEach(l=>l.classList.toggle('on',l.contains(r)&&r.checked)); }));
 }
 function initFavourites(){
   document.querySelectorAll('[data-fav]').forEach(btn=>{
@@ -1524,7 +1586,7 @@ function bindForms(){
         else if(form.id==='loginForm') await handleLogin(form);
         else if(form.hasAttribute('data-profile-form')) await handleProfile(form);
         else if(form.id==='listingForm') await handleListing(form);
-        else if(form.id==='incidentForm') handleIncident(form);
+        else if(form.id==='incidentForm') await handleIncident(form);
         else if(form.id==='incidentAdminForm') window.__saveIncidentAdmin&&window.__saveIncidentAdmin();
         else if(form.id==='attractionForm') await handleAttraction(form);
         else {
@@ -1573,7 +1635,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
     initSearch(); initAttractionList(); initStayPage(); initAttractionPage();
     initHostListings(); initHostEdit(); initHostDashboard(); initHostBookings(); initHostPayments(); initHostAvailability(); initTouristBookings();
     initAdminListings(); initAdminAttractions(); initAdminUsers(); initAdminDashboard();
-    initReviewPage(); initHostReviews(); initAdminReviews(); initIncidentForm(); initAdminIncidents(); initMessages(); paintBadges();
+    initReviewPage(); initHostReviews(); initAdminReviews(); initIncidentForm(); initAdminIncidents(); initMessages(); paintBadges(); initPaymentPage();
     bindTabs(); initDateInputs(); initProfile();
     initBookingFlow(); initFavourites(); bindPreviews(); initPhotoUpload(); bindForms(); bindMisc();
     const m=consumeFlash(); if(m) setTimeout(()=>showToast(m),120);
