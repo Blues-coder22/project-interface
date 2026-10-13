@@ -1,1 +1,58 @@
-<!doctype html><html lang="en" data-auth="tourist"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>My bookings — StayExplore Kenya</title><link rel="stylesheet" href="css/style.css"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2716%27 fill=%27%230d3b2e%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-size=%2713%27 fill=%27white%27 text-anchor=%27middle%27 font-family=%27Georgia%27%3ESE%3C/text%3E%3C/svg%3E"><script src="js/app.js"></script><noscript><style>html.se-pending body{visibility:visible!important}</style></noscript></head><body><header class="public-nav" data-site-nav></header><main class="page"><div class="page-head"><div><div class="eyebrow">Your trips</div><h1>My bookings.</h1><div class="sub">Keep track of upcoming and past stays.</div></div><a class="btn" href="search.html">Find a stay</a></div><div class="card table-wrap"><table><thead><tr><th>Stay</th><th>Dates</th><th>Guests</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody data-user-bookings></tbody></table></div><div class="grid grid-3" style="margin-top:18px"><div class="card pad"><div class="eyebrow">Upcoming</div><h3 data-bind="upcoming">0 trips</h3><p class="small">Confirmed stays still to come.</p></div><div class="card pad"><div class="eyebrow">History</div><h3 data-bind="history">0 stays</h3><p class="small">Completed bookings available for review.</p></div><div class="card pad"><div class="eyebrow">Need help?</div><h3>Booking support</h3><p class="small"><a class="home-link" href="report.html">Report a platform incident</a></p></div></div></main><footer class="hp-footer" data-site-footer></footer></body></html>
+<!DOCTYPE html>
+<html lang="en" data-auth="tourist">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>My bookings — StayExplore Kenya</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2716%27 fill=%27%230d3b2e%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-size=%2713%27 fill=%27white%27 text-anchor=%27middle%27 font-family=%27Georgia%27%3ESE%3C/text%3E%3C/svg%3E">
+    <script src="js/app.js"></script>
+    <noscript><style>html.se-pending body{visibility:visible!important}</style></noscript>
+  </head>
+  <body>
+    <header class="public-nav" data-site-nav=""></header>
+    <main class="page">
+      <div class="page-head">
+        <div>
+          <div class="eyebrow">Your trips</div>
+          <h1>My bookings.</h1>
+          <div class="sub">Keep track of upcoming and past stays.</div>
+        </div>
+        <a class="btn" href="search.html">Find a stay</a>
+      </div>
+      <div class="card table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Stay</th>
+              <th>Dates</th>
+              <th>Guests</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody data-user-bookings=""></tbody>
+        </table>
+      </div>
+      <div class="grid grid-3" style="margin-top:18px">
+        <div class="card pad">
+          <div class="eyebrow">Upcoming</div>
+          <h3 data-bind="upcoming">0 trips</h3>
+          <p class="small">Confirmed stays still to come.</p>
+        </div>
+        <div class="card pad">
+          <div class="eyebrow">History</div>
+          <h3 data-bind="history">0 stays</h3>
+          <p class="small">Completed bookings available for review.</p>
+        </div>
+        <div class="card pad">
+          <div class="eyebrow">Need help?</div>
+          <h3>Booking support</h3>
+          <p class="small"><a class="home-link" href="report.html">Report a platform incident</a></p>
+        </div>
+      </div>
+    </main>
+    <footer class="hp-footer" data-site-footer=""></footer>
+  </body>
+</html>

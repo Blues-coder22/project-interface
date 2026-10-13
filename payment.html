@@ -1,1 +1,50 @@
-<!doctype html><html lang="en" data-auth="tourist"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Payment — StayExplore Kenya</title><link rel="stylesheet" href="css/style.css"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2716%27 fill=%27%230d3b2e%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-size=%2713%27 fill=%27white%27 text-anchor=%27middle%27 font-family=%27Georgia%27%3ESE%3C/text%3E%3C/svg%3E"><script src="js/app.js"></script><noscript><style>html.se-pending body{visibility:visible!important}</style></noscript></head><body><header class="public-nav" data-site-nav></header><main class="page"><div class="eyebrow">Payment</div><h1>Choose how you will pay.</h1><p class="sub">StayExplore records and tracks your payment for you and your host. We do not take card details or move money, and your host confirms when they have received it.</p><div class="grid grid-2" style="margin-top:22px"><form id="paymentForm" class="card pad grid" data-next="confirmation.html"><div class="field"><label>PAYMENT METHOD</label><div class="pay-methods"><label class="pay-method"><input type="radio" name="method" value="cash" required><span><strong>Pay on arrival (cash)</strong><small>Pay your host in cash at check-in.</small></span></label><label class="pay-method"><input type="radio" name="method" value="bank"><span><strong>Bank transfer</strong><small>Your host sends their bank details after you book.</small></span></label><label class="pay-method"><input type="radio" name="method" value="mpesa"><span><strong>M-Pesa (sent manually)</strong><small>You send the money yourself, then note the code here.</small></span></label></div></div><div class="notice" id="payHint" hidden></div><div class="field" data-ref-field hidden><label for="payRef">TRANSACTION REFERENCE (OPTIONAL)</label><input id="payRef" name="reference" maxlength="40" placeholder="Bank reference or M-Pesa code"></div><label class="check"><input type="checkbox" required> I confirm the amount and booking details.</label><button type="submit" class="btn">Confirm booking · <span data-bind="total">KSh 35,280</span></button></form><aside class="card pad"><div class="photo user-house"></div><h3 style="margin-top:13px" data-bind="stay">Karura House</h3><p class="small" data-bind="range">14–18 Oct 2026 · 2 guests</p><div class="kpi" style="margin-top:18px"><span class="small">TOTAL TO PAY YOUR HOST</span><strong data-bind="total">KSh 35,280</strong><span class="small">Payment status: awaiting payment until your host confirms it</span></div></aside></div></main><footer class="hp-footer" data-site-footer></footer></body></html>
+<!DOCTYPE html>
+<html lang="en" data-auth="tourist">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Payment — StayExplore Kenya</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2716%27 fill=%27%230d3b2e%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-size=%2713%27 fill=%27white%27 text-anchor=%27middle%27 font-family=%27Georgia%27%3ESE%3C/text%3E%3C/svg%3E">
+    <script src="js/app.js"></script>
+    <noscript><style>html.se-pending body{visibility:visible!important}</style></noscript>
+  </head>
+  <body>
+    <header class="public-nav" data-site-nav=""></header>
+    <main class="page">
+      <div class="eyebrow">Payment</div>
+      <h1>Choose how you will pay.</h1>
+      <p class="sub">StayExplore records and tracks your payment for you and your host. We do not take card details or move money, and your host confirms when they have received it.</p>
+      <div class="grid grid-2" style="margin-top:22px">
+        <form id="paymentForm" class="card pad grid" data-next="confirmation.html">
+          <div class="field">
+            <label>PAYMENT METHOD</label>
+            <div class="pay-methods">
+              <label class="pay-method"><input type="radio" name="method" value="cash" required=""><span><strong>Pay on arrival (cash)</strong><small>Pay your host in cash at check-in.</small></span></label>
+              <label class="pay-method"><input type="radio" name="method" value="bank"><span><strong>Bank transfer</strong><small>Your host sends their bank details after you book.</small></span></label>
+              <label class="pay-method"><input type="radio" name="method" value="mpesa"><span><strong>M-Pesa (sent manually)</strong><small>You send the money yourself, then note the code here.</small></span></label>
+            </div>
+          </div>
+          <div class="notice" id="payHint" hidden=""></div>
+          <div class="field" data-ref-field="" hidden="">
+            <label for="payRef">TRANSACTION REFERENCE (OPTIONAL)</label>
+            <input id="payRef" name="reference" maxlength="40" placeholder="Bank reference or M-Pesa code">
+          </div>
+          <label class="check"><input type="checkbox" required=""> I confirm the amount and booking details.</label>
+          <button type="submit" class="btn">Confirm booking · <span data-bind="total">KSh 35,280</span></button>
+        </form>
+        <aside class="card pad">
+          <div class="photo user-house"></div>
+          <h3 style="margin-top:13px" data-bind="stay">Karura House</h3>
+          <p class="small" data-bind="range">14–18 Oct 2026 · 2 guests</p>
+          <div class="kpi" style="margin-top:18px">
+            <span class="small">TOTAL TO PAY YOUR HOST</span>
+            <strong data-bind="total">KSh 35,280</strong>
+            <span class="small">Payment status: awaiting payment until your host confirms it</span>
+          </div>
+        </aside>
+      </div>
+    </main>
+    <footer class="hp-footer" data-site-footer=""></footer>
+  </body>
+</html>

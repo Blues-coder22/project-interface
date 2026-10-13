@@ -1,1 +1,83 @@
-<!doctype html><html lang="en" data-auth="host"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Host overview — StayExplore Kenya</title><link rel="stylesheet" href="css/style.css"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2716%27 fill=%27%230d3b2e%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-size=%2713%27 fill=%27white%27 text-anchor=%27middle%27 font-family=%27Georgia%27%3ESE%3C/text%3E%3C/svg%3E"><script src="js/app.js"></script><noscript><style>html.se-pending body{visibility:visible!important}</style></noscript></head><body data-active="dashboard"><div data-shell><div class="page-head"><div><div class="eyebrow">Hosting</div><h1>Host overview</h1></div></div><div class="grid grid-4"><div class="mini-stat"><div class="small">ACTIVE LISTINGS</div><div class="number" data-stat="host-active">0</div><span class="small" data-stat="host-active-sub">0 approved · 0 pending</span></div><div class="mini-stat"><div class="small">UPCOMING BOOKINGS</div><div class="number" data-stat="host-upcoming">0</div><span class="small" data-stat="host-upcoming-sub">0 bookings in total</span></div><div class="mini-stat"><div class="small">TOTAL EARNINGS</div><div class="number" data-stat="host-income">KSh 0</div><span class="small" data-stat="host-income-sub">From 0 paid bookings</span></div><div class="mini-stat"><div class="small">RATING</div><div class="number" data-stat="host-rating">New</div><span class="small" data-stat="host-rating-sub">0 guest reviews</span></div></div><div class="dashboard-grid" style="margin-top:18px"><div class="card pad"><div class="actions" style="justify-content:space-between"><div><div class="eyebrow">Bookings</div><h2>Recent bookings</h2></div><a class="home-link" href="host-manage-bookings.html">View all</a></div><div class="table-wrap"><table><thead><tr><th>Guest</th><th>Property</th><th>Dates</th><th>Status</th></tr></thead><tbody data-host-recent></tbody></table></div></div><div class="card pad"><div class="eyebrow">Income</div><h2>Monthly trend</h2><div class="line-chart" data-host-income-chart></div><div class="small" data-host-income-note>Based on paid bookings over the last six months.</div></div></div><div class="card pad" style="margin-top:18px"><div class="eyebrow">Attention</div><h2>What needs action?</h2><div class="grid grid-3"><a class="kpi" href="host-add-listing.html"><strong data-stat="host-pending">0 listings</strong><span class="small">Awaiting approval</span></a><a class="kpi" href="host-reviews.html"><strong data-stat="host-reviews">0 guest reviews</strong><span class="small">Read guest feedback</span></a><a class="kpi" href="host-report-incident.html"><strong data-stat="host-reports">0 reports</strong><span class="small">View your submitted reports</span></a></div></div></div></body></html>
+<!DOCTYPE html>
+<html lang="en" data-auth="host">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Host overview — StayExplore Kenya</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2716%27 fill=%27%230d3b2e%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-size=%2713%27 fill=%27white%27 text-anchor=%27middle%27 font-family=%27Georgia%27%3ESE%3C/text%3E%3C/svg%3E">
+    <script src="js/app.js"></script>
+    <noscript><style>html.se-pending body{visibility:visible!important}</style></noscript>
+  </head>
+  <body data-active="dashboard">
+    <div data-shell="">
+      <div class="page-head">
+        <div>
+          <div class="eyebrow">Hosting</div>
+          <h1>Host overview</h1>
+        </div>
+      </div>
+      <div class="grid grid-4">
+        <div class="mini-stat">
+          <div class="small">ACTIVE LISTINGS</div>
+          <div class="number" data-stat="host-active">0</div>
+          <span class="small" data-stat="host-active-sub">0 approved · 0 pending</span>
+        </div>
+        <div class="mini-stat">
+          <div class="small">UPCOMING BOOKINGS</div>
+          <div class="number" data-stat="host-upcoming">0</div>
+          <span class="small" data-stat="host-upcoming-sub">0 bookings in total</span>
+        </div>
+        <div class="mini-stat">
+          <div class="small">TOTAL EARNINGS</div>
+          <div class="number" data-stat="host-income">KSh 0</div>
+          <span class="small" data-stat="host-income-sub">From 0 paid bookings</span>
+        </div>
+        <div class="mini-stat">
+          <div class="small">RATING</div>
+          <div class="number" data-stat="host-rating">New</div>
+          <span class="small" data-stat="host-rating-sub">0 guest reviews</span>
+        </div>
+      </div>
+      <div class="dashboard-grid" style="margin-top:18px">
+        <div class="card pad">
+          <div class="actions" style="justify-content:space-between">
+            <div>
+              <div class="eyebrow">Bookings</div>
+              <h2>Recent bookings</h2>
+            </div>
+            <a class="home-link" href="host-manage-bookings.html">View all</a>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Guest</th>
+                  <th>Property</th>
+                  <th>Dates</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody data-host-recent=""></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card pad">
+          <div class="eyebrow">Income</div>
+          <h2>Monthly trend</h2>
+          <div class="line-chart" data-host-income-chart=""></div>
+          <div class="small" data-host-income-note="">Based on paid bookings over the last six months.</div>
+        </div>
+      </div>
+      <div class="card pad" style="margin-top:18px">
+        <div class="eyebrow">Attention</div>
+        <h2>What needs action?</h2>
+        <div class="grid grid-3">
+          <a class="kpi" href="host-add-listing.html"><strong data-stat="host-pending">0 listings</strong><span class="small">Awaiting approval</span></a>
+          <a class="kpi" href="host-reviews.html"><strong data-stat="host-reviews">0 guest reviews</strong><span class="small">Read guest feedback</span></a>
+          <a class="kpi" href="host-report-incident.html"><strong data-stat="host-reports">0 reports</strong><span class="small">View your submitted reports</span></a>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

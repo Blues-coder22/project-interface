@@ -1,1 +1,119 @@
-<!doctype html><html lang="en" data-auth="admin"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Listing approvals — StayExplore Kenya</title><link rel="stylesheet" href="css/style.css"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2716%27 fill=%27%230d3b2e%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-size=%2713%27 fill=%27white%27 text-anchor=%27middle%27 font-family=%27Georgia%27%3ESE%3C/text%3E%3C/svg%3E"><script src="js/app.js"></script><noscript><style>html.se-pending body{visibility:visible!important}</style></noscript></head><body data-active="approvals"><div data-shell><div class="page-head"><div><div class="eyebrow">Administration</div><h1>Listing approvals</h1></div></div><div class="card table-wrap"><table><thead><tr><th>Property</th><th>Host</th><th>Location</th><th>Submitted</th><th>Status</th><th>Action</th></tr></thead><tbody data-admin-listings></tbody></table></div><div class="grid grid-3" style="margin-top:18px"><div class="kpi"><strong data-stat="pending">0</strong><span class="small">Pending review</span></div><div class="kpi"><strong data-stat="approved">0</strong><span class="small">Approved &amp; live</span></div><div class="kpi"><strong data-stat="rejected">0</strong><span class="small">Rejected or suspended</span></div></div><div class="listing-form" id="adminListingPanel" style="margin-top:18px" hidden><form id="listingForm" data-mode="admin-edit" class="card pad grid"><div class="eyebrow">Edit listing</div><h2 id="adminListingTitle" style="margin-top:-4px">Edit listing</h2><div class="field"><label for="a-name">PROPERTY NAME</label><input id="a-name" name="name" required minlength="3"></div><div class="field"><label for="a-loc">LOCATION</label><input id="a-loc" name="location" required></div><div class="grid grid-2"><div class="field"><label for="a-price">PRICE / NIGHT (KSH)</label><input id="a-price" name="price" type="number" min="1" step="1" required></div><div class="field"><label for="a-type">PROPERTY TYPE</label><select id="a-type" name="type"><option>Apartment</option><option>Guest house</option><option>Lodge</option><option>Villa</option><option>Tented camp</option></select></div></div><div class="field"><label for="a-desc">DESCRIPTION</label><textarea id="a-desc" name="description" required minlength="10"></textarea></div><div class="grid grid-2"><div class="field"><label for="a-amen">AMENITIES (COMMA SEPARATED)</label><input id="a-amen" name="amenities"></div><div class="field"><label for="a-rules">HOUSE RULES</label><input id="a-rules" name="rules"></div></div><div class="grid grid-2"><div class="field"><label for="a-status">STATUS</label><select id="a-status" name="status"><option value="approved">Approved</option><option value="pending">Pending</option><option value="review">Needs review</option><option value="rejected">Rejected</option><option value="suspended">Suspended</option></select></div><div class="field"><label for="a-photos">REPLACE PHOTOS (OPTIONAL)</label><input id="a-photos" name="photos" type="file" accept="image/*" multiple data-preview="#adminListingCover"></div></div><div class="field"><label>PIN THE LOCATION ON THE MAP</label><div class="pick-map" data-pick-map></div><input type="hidden" name="lat"><input type="hidden" name="lng"><div class="actions" style="margin-top:8px;justify-content:space-between"><span class="small" data-pick-note>Click the map to pin the exact location.</span><button type="button" class="btn btn-outline btn-sm" data-pick-here>Use my current location</button></div></div><div class="actions"><button type="submit" class="btn">Save listing</button><button type="button" class="btn btn-outline" id="adminListingCancel">Close</button></div></form><aside class="card pad"><div class="photo" id="adminListingCover"></div><div class="eyebrow" style="margin-top:14px">Integrity checks</div><ul class="integrity" id="integrityList"></ul><p class="small" style="margin-top:12px">Changes appear to tourists immediately when the status is Approved.</p></aside></div></div></body></html>
+<!DOCTYPE html>
+<html lang="en" data-auth="admin">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Listing approvals — StayExplore Kenya</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2716%27 fill=%27%230d3b2e%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-size=%2713%27 fill=%27white%27 text-anchor=%27middle%27 font-family=%27Georgia%27%3ESE%3C/text%3E%3C/svg%3E">
+    <script src="js/app.js"></script>
+    <noscript><style>html.se-pending body{visibility:visible!important}</style></noscript>
+  </head>
+  <body data-active="approvals">
+    <div data-shell="">
+      <div class="page-head">
+        <div>
+          <div class="eyebrow">Administration</div>
+          <h1>Listing approvals</h1>
+        </div>
+      </div>
+      <div class="card table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Property</th>
+              <th>Host</th>
+              <th>Location</th>
+              <th>Submitted</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody data-admin-listings=""></tbody>
+        </table>
+      </div>
+      <div class="grid grid-3" style="margin-top:18px">
+        <div class="kpi">
+          <strong data-stat="pending">0</strong>
+          <span class="small">Pending review</span>
+        </div>
+        <div class="kpi">
+          <strong data-stat="approved">0</strong>
+          <span class="small">Approved &amp; live</span>
+        </div>
+        <div class="kpi">
+          <strong data-stat="rejected">0</strong>
+          <span class="small">Rejected or suspended</span>
+        </div>
+      </div>
+      <div class="listing-form" id="adminListingPanel" style="margin-top:18px" hidden="">
+        <form id="listingForm" data-mode="admin-edit" class="card pad grid">
+          <div class="eyebrow">Edit listing</div>
+          <h2 id="adminListingTitle" style="margin-top:-4px">Edit listing</h2>
+          <div class="field">
+            <label for="a-name">PROPERTY NAME</label>
+            <input id="a-name" name="name" required="" minlength="3">
+          </div>
+          <div class="field">
+            <label for="a-loc">LOCATION</label>
+            <input id="a-loc" name="location" required="">
+          </div>
+          <div class="grid grid-2">
+            <div class="field">
+              <label for="a-price">PRICE / NIGHT (KSH)</label>
+              <input id="a-price" name="price" type="number" min="1" step="1" required="">
+            </div>
+            <div class="field">
+              <label for="a-type">PROPERTY TYPE</label>
+              <select id="a-type" name="type"><option>Apartment</option><option>Guest house</option><option>Lodge</option><option>Villa</option><option>Tented camp</option></select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="a-desc">DESCRIPTION</label>
+            <textarea id="a-desc" name="description" required="" minlength="10"></textarea>
+          </div>
+          <div class="grid grid-2">
+            <div class="field">
+              <label for="a-amen">AMENITIES (COMMA SEPARATED)</label>
+              <input id="a-amen" name="amenities">
+            </div>
+            <div class="field">
+              <label for="a-rules">HOUSE RULES</label>
+              <input id="a-rules" name="rules">
+            </div>
+          </div>
+          <div class="grid grid-2">
+            <div class="field">
+              <label for="a-status">STATUS</label>
+              <select id="a-status" name="status"><option value="approved">Approved</option><option value="pending">Pending</option><option value="review">Needs review</option><option value="rejected">Rejected</option><option value="suspended">Suspended</option></select>
+            </div>
+            <div class="field">
+              <label for="a-photos">REPLACE PHOTOS (OPTIONAL)</label>
+              <input id="a-photos" name="photos" type="file" accept="image/*" multiple="multiple" data-preview="#adminListingCover">
+            </div>
+          </div>
+          <div class="field">
+            <label>PIN THE LOCATION ON THE MAP</label>
+            <div class="pick-map" data-pick-map=""></div>
+            <input type="hidden" name="lat">
+            <input type="hidden" name="lng">
+            <div class="actions" style="margin-top:8px;justify-content:space-between">
+              <span class="small" data-pick-note="">Click the map to pin the exact location.</span>
+              <button type="button" class="btn btn-outline btn-sm" data-pick-here="">Use my current location</button>
+            </div>
+          </div>
+          <div class="actions">
+            <button type="submit" class="btn">Save listing</button>
+            <button type="button" class="btn btn-outline" id="adminListingCancel">Close</button>
+          </div>
+        </form>
+        <aside class="card pad">
+          <div class="photo" id="adminListingCover"></div>
+          <div class="eyebrow" style="margin-top:14px">Integrity checks</div>
+          <ul class="integrity" id="integrityList"></ul>
+          <p class="small" style="margin-top:12px">Changes appear to tourists immediately when the status is Approved.</p>
+        </aside>
+      </div>
+    </div>
+  </body>
+</html>

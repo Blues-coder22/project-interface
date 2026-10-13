@@ -1,1 +1,59 @@
-<!doctype html><html lang="en" data-auth="admin"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Moderate reviews — StayExplore Kenya</title><link rel="stylesheet" href="css/style.css"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2716%27 fill=%27%230d3b2e%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-size=%2713%27 fill=%27white%27 text-anchor=%27middle%27 font-family=%27Georgia%27%3ESE%3C/text%3E%3C/svg%3E"><script src="js/app.js"></script><noscript><style>html.se-pending body{visibility:visible!important}</style></noscript></head><body data-active="reviews"><div data-shell><div class="page-head"><div><div class="eyebrow">Administration</div><h1>Moderate reviews</h1></div><select id="reviewFilter" aria-label="Filter reviews" style="padding:9px;border:1px solid var(--line)"><option value="all">All reviews</option><option value="flagged">Reported / flagged</option><option value="risk">High risk</option><option value="sealed">Sealed (awaiting reveal)</option><option value="hidden">Hidden or removed</option></select></div><div class="card table-wrap"><table><thead><tr><th>Author</th><th>Property</th><th>Rating</th><th>Review</th><th>Risk</th><th>Status</th><th>Action</th></tr></thead><tbody data-admin-reviews></tbody></table></div><div class="grid grid-4" style="margin-top:18px"><div class="kpi"><strong data-stat="rv-flagged">0</strong><span class="small">Flagged</span></div><div class="kpi"><strong data-stat="rv-published">0</strong><span class="small">Published</span></div><div class="kpi"><strong data-stat="rv-sealed">0</strong><span class="small">Sealed until reveal</span></div><div class="kpi"><strong data-stat="rv-removed">0</strong><span class="small">Hidden or removed</span></div></div><div class="notice" style="margin-top:18px"><strong>Risk score (0–100).</strong> A rule-based guide that helps you decide what to check first. It looks at signals such as a host report, links or phone numbers in the text, identical text, several reviews in minutes, very short or all-capitals text, and a rating far from the listing's average. Hover a badge to see the reasons. It is a signal, not proof, and nothing is removed automatically.</div><div class="notice" style="margin-top:12px">Reviews come only from completed bookings. Guest and host reviews stay sealed until both are in, or the 14-day window closes.</div></div></body></html>
+<!DOCTYPE html>
+<html lang="en" data-auth="admin">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Moderate reviews — StayExplore Kenya</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2716%27 fill=%27%230d3b2e%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-size=%2713%27 fill=%27white%27 text-anchor=%27middle%27 font-family=%27Georgia%27%3ESE%3C/text%3E%3C/svg%3E">
+    <script src="js/app.js"></script>
+    <noscript><style>html.se-pending body{visibility:visible!important}</style></noscript>
+  </head>
+  <body data-active="reviews">
+    <div data-shell="">
+      <div class="page-head">
+        <div>
+          <div class="eyebrow">Administration</div>
+          <h1>Moderate reviews</h1>
+        </div>
+        <select id="reviewFilter" aria-label="Filter reviews" style="padding:9px;border:1px solid var(--line)"><option value="all">All reviews</option><option value="flagged">Reported / flagged</option><option value="risk">High risk</option><option value="sealed">Sealed (awaiting reveal)</option><option value="hidden">Hidden or removed</option></select>
+      </div>
+      <div class="card table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Author</th>
+              <th>Property</th>
+              <th>Rating</th>
+              <th>Review</th>
+              <th>Risk</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody data-admin-reviews=""></tbody>
+        </table>
+      </div>
+      <div class="grid grid-4" style="margin-top:18px">
+        <div class="kpi">
+          <strong data-stat="rv-flagged">0</strong>
+          <span class="small">Flagged</span>
+        </div>
+        <div class="kpi">
+          <strong data-stat="rv-published">0</strong>
+          <span class="small">Published</span>
+        </div>
+        <div class="kpi">
+          <strong data-stat="rv-sealed">0</strong>
+          <span class="small">Sealed until reveal</span>
+        </div>
+        <div class="kpi">
+          <strong data-stat="rv-removed">0</strong>
+          <span class="small">Hidden or removed</span>
+        </div>
+      </div>
+      <div class="notice" style="margin-top:18px"><strong>Risk score (0–100).</strong> A rule-based guide that helps you decide what to check first. It looks at signals such as a host report, links or phone numbers in the text, identical text, several reviews in minutes, very short or all-capitals text, and a rating far from the listing's average. Hover a badge to see the reasons. It is a signal, not proof, and nothing is removed automatically.</div>
+      <div class="notice" style="margin-top:12px">Reviews come only from completed bookings. Guest and host reviews stay sealed until both are in, or the 14-day window closes.</div>
+    </div>
+  </body>
+</html>

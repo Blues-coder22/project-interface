@@ -1,1 +1,61 @@
-<!doctype html><html lang="en" data-auth="host"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Availability — StayExplore Kenya</title><link rel="stylesheet" href="css/style.css"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2716%27 fill=%27%230d3b2e%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-size=%2713%27 fill=%27white%27 text-anchor=%27middle%27 font-family=%27Georgia%27%3ESE%3C/text%3E%3C/svg%3E"><script src="js/app.js"></script><noscript><style>html.se-pending body{visibility:visible!important}</style></noscript></head><body data-active="availability"><div data-shell><div class="page-head"><div><div class="eyebrow">Hosting</div><h1>Availability</h1></div></div><div class="split"><div class="card pad"><div class="actions" style="justify-content:space-between"><div><div class="eyebrow">Calendar</div><h2 id="calTitle"></h2></div><div class="actions"><select id="availListing" aria-label="Listing" style="padding:8px;border:1px solid var(--line)"></select><button class="btn btn-outline btn-sm" id="calPrev" type="button" aria-label="Previous month">‹</button><button class="btn btn-outline btn-sm" id="calNext" type="button" aria-label="Next month">›</button></div></div><div class="calendar" id="calendar" style="margin-top:16px"></div></div><aside class="card pad"><div class="eyebrow">Legend</div><div class="kpi"><strong>Open</strong><span class="small">Guests can book</span></div><div class="kpi" style="margin-top:10px"><strong>Booked</strong><span class="small">Confirmed reservation (tap for details)</span></div><div class="kpi" style="margin-top:10px"><strong>Blocked</strong><span class="small">Closed by you (tap to reopen)</span></div><div class="field" style="margin-top:18px"><label for="blockFrom">BLOCK DATES</label><input id="blockFrom" type="date"><input id="blockTo" type="date" aria-label="Block until" style="margin-top:7px"></div><button class="btn" id="blockBtn" type="button" style="margin-top:10px">Block dates</button><div class="eyebrow" style="margin-top:22px">Upcoming bookings</div><div id="availList"></div></aside></div></div></body></html>
+<!DOCTYPE html>
+<html lang="en" data-auth="host">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Availability — StayExplore Kenya</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2716%27 fill=%27%230d3b2e%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-size=%2713%27 fill=%27white%27 text-anchor=%27middle%27 font-family=%27Georgia%27%3ESE%3C/text%3E%3C/svg%3E">
+    <script src="js/app.js"></script>
+    <noscript><style>html.se-pending body{visibility:visible!important}</style></noscript>
+  </head>
+  <body data-active="availability">
+    <div data-shell="">
+      <div class="page-head">
+        <div>
+          <div class="eyebrow">Hosting</div>
+          <h1>Availability</h1>
+        </div>
+      </div>
+      <div class="split">
+        <div class="card pad">
+          <div class="actions" style="justify-content:space-between">
+            <div>
+              <div class="eyebrow">Calendar</div>
+              <h2 id="calTitle"></h2>
+            </div>
+            <div class="actions">
+              <select id="availListing" aria-label="Listing" style="padding:8px;border:1px solid var(--line)"></select>
+              <button class="btn btn-outline btn-sm" id="calPrev" type="button" aria-label="Previous month">‹</button>
+              <button class="btn btn-outline btn-sm" id="calNext" type="button" aria-label="Next month">›</button>
+            </div>
+          </div>
+          <div class="calendar" id="calendar" style="margin-top:16px"></div>
+        </div>
+        <aside class="card pad">
+          <div class="eyebrow">Legend</div>
+          <div class="kpi">
+            <strong>Open</strong>
+            <span class="small">Guests can book</span>
+          </div>
+          <div class="kpi" style="margin-top:10px">
+            <strong>Booked</strong>
+            <span class="small">Confirmed reservation (tap for details)</span>
+          </div>
+          <div class="kpi" style="margin-top:10px">
+            <strong>Blocked</strong>
+            <span class="small">Closed by you (tap to reopen)</span>
+          </div>
+          <div class="field" style="margin-top:18px">
+            <label for="blockFrom">BLOCK DATES</label>
+            <input id="blockFrom" type="date">
+            <input id="blockTo" type="date" aria-label="Block until" style="margin-top:7px">
+          </div>
+          <button class="btn" id="blockBtn" type="button" style="margin-top:10px">Block dates</button>
+          <div class="eyebrow" style="margin-top:22px">Upcoming bookings</div>
+          <div id="availList"></div>
+        </aside>
+      </div>
+    </div>
+  </body>
+</html>

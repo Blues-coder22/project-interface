@@ -1,39 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Home — StayExplore Kenya</title>
-    <link rel="stylesheet" href="css/style.css" />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2716%27 fill=%27%230d3b2e%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-size=%2713%27 fill=%27white%27 text-anchor=%27middle%27 font-family=%27Georgia%27%3ESE%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2716%27 fill=%27%230d3b2e%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-size=%2713%27 fill=%27white%27 text-anchor=%27middle%27 font-family=%27Georgia%27%3ESE%3C/text%3E%3C/svg%3E">
     <script src="js/app.js"></script>
-    <noscript>
-      <style>
+    <noscript><style>
         html.se-pending body { visibility: visible !important; }
-      </style>
-    </noscript>
+      </style></noscript>
   </head>
   <body class="homepage">
     <header class="hp-header">
-      <a class="hp-brand" href="index.html">
-        <span class="brand-mark">SE</span>
-        <span>StayExplore<small>KENYA</small></span>
-      </a>
-      <nav class="hp-nav" aria-label="Main navigation">
-        <a href="how-it-works.html">How it works</a>
-      </nav>
+      <a class="hp-brand" href="index.html"><span class="brand-mark">SE</span><span>StayExplore<small>KENYA</small></span></a>
+      <nav class="hp-nav" aria-label="Main navigation"><a href="how-it-works.html">How it works</a></nav>
       <div class="hp-actions">
         <a href="login.html">Sign in</a>
         <a class="btn" href="register.html">Sign up</a>
       </div>
     </header>
-
     <section class="hp-hero">
       <div class="hp-hero-inner">
         <span class="hp-badge">Smart recommendations for Kenya and beyond</span>
         <h1>
-          Discover Kenya.<br />
-          Stay.Explore.<br />
+          Discover Kenya.<br>
+          Stay.Explore.<br>
           Experience.
         </h1>
         <p>
@@ -45,19 +37,18 @@
         </div>
       </div>
     </section>
-
     <section class="hp-section hp-map-section" id="kenyaMap">
       <div class="hp-kicker">Search anywhere in Kenya</div>
       <h2>Find a stay or an attraction on the map</h2>
       <p class="hp-caption">Start from a place you want to visit and see the best stays around it, or start from a stay and see what is nearby.</p>
       <div class="map-search">
         <div class="map-search-box">
-          <input id="mapSearch" type="search" placeholder="Try “Diani”, “Maasai Mara”, “Nanyuki”…" autocomplete="off" aria-label="Search a place, attraction or stay in Kenya" role="combobox" aria-expanded="false" aria-controls="mapSuggest" />
-          <ul id="mapSuggest" role="listbox" hidden></ul>
+          <input id="mapSearch" type="search" placeholder="Try “Diani”, “Maasai Mara”, “Nanyuki”…" autocomplete="off" aria-label="Search a place, attraction or stay in Kenya" role="combobox" aria-expanded="false" aria-controls="mapSuggest">
+          <ul id="mapSuggest" role="listbox" hidden=""></ul>
         </div>
         <button class="btn" id="mapGo" type="button">Search</button>
         <button class="btn btn-outline" id="mapNear" type="button">◎ Use my location</button>
-        <select id="mapRadius" aria-label="Search radius"><option value="25">Within 25 km</option><option value="50">Within 50 km</option><option value="100" selected>Within 100 km</option><option value="250">Within 250 km</option></select>
+        <select id="mapRadius" aria-label="Search radius"><option value="25">Within 25 km</option><option value="50">Within 50 km</option><option value="100" selected="selected">Within 100 km</option><option value="250">Within 250 km</option></select>
       </div>
       <div class="map-chips" role="group" aria-label="Show on map">
         <button type="button" class="chip on" data-kind="all" aria-pressed="true">All</button>
@@ -69,7 +60,6 @@
         <aside class="card pad map-results" id="mapResults" aria-live="polite"></aside>
       </div>
     </section>
-
     <section class="hp-intro">
       <div class="hp-benefits">
         <div class="hp-benefit">
@@ -94,19 +84,30 @@
         </div>
       </div>
     </section>
-
     <section class="hp-section">
-      <div class="hp-section-head"><div><div class="hp-kicker">Curated for your journey</div><h2>Featured Stays</h2><p class="hp-caption">Hand-picked places to unwind, each close to something worth exploring.</p></div><a class="home-link hp-viewall" href="search.html" data-stays-count>View all stays →</a></div>
+      <div class="hp-section-head">
+        <div>
+          <div class="hp-kicker">Curated for your journey</div>
+          <h2>Featured Stays</h2>
+          <p class="hp-caption">Hand-picked places to unwind, each close to something worth exploring.</p>
+        </div>
+        <a class="home-link hp-viewall" href="search.html" data-stays-count="">View all stays →</a>
+      </div>
       <div class="hp-stay-grid" id="featuredStays"></div>
     </section>
-
     <section class="hp-section" id="attractions">
-      <div class="hp-section-head"><div><div class="hp-kicker">Explore by destination</div><h2>Popular Attractions</h2><p class="hp-caption">Discover Kenya's most iconic landscapes, wildlife reserves, and coastal escapes.</p></div><a class="home-link hp-viewall" href="search.html#attractions" data-attractions-count>View all attractions →</a></div>
+      <div class="hp-section-head">
+        <div>
+          <div class="hp-kicker">Explore by destination</div>
+          <h2>Popular Attractions</h2>
+          <p class="hp-caption">Discover Kenya's most iconic landscapes, wildlife reserves, and coastal escapes.</p>
+        </div>
+        <a class="home-link hp-viewall" href="search.html#attractions" data-attractions-count="">View all attractions →</a>
+      </div>
       <div class="hp-attraction-layout" id="popularAttractions"></div>
     </section>
-
     <section class="hp-host">
-      <img src="assets/user-house.jpg" alt="A welcoming Kenyan host home" />
+      <img src="assets/user-house.jpg" alt="A welcoming Kenyan host home">
       <div class="hp-host-copy">
         <div class="hp-kicker">For Kenyan hosts</div>
         <h2>Your place belongs in someone's story.</h2>
@@ -117,8 +118,7 @@
         </div>
       </div>
     </section>
-
-    <footer class="hp-footer" data-site-footer>
+    <footer class="hp-footer" data-site-footer="">
       <div>
         <div class="brand">StayExplore Kenya</div>
         <p>Thoughtfully matching travellers with Kenyan stays and experiences.</p>
@@ -142,7 +142,5 @@
         <a href="how-it-works.html">Terms</a>
       </div>
     </footer>
-
-    
   </body>
 </html>

@@ -1,1 +1,58 @@
-<!doctype html><html lang="en" data-auth="host"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Payment tracking — StayExplore Kenya</title><link rel="stylesheet" href="css/style.css"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2716%27 fill=%27%230d3b2e%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-size=%2713%27 fill=%27white%27 text-anchor=%27middle%27 font-family=%27Georgia%27%3ESE%3C/text%3E%3C/svg%3E"><script src="js/app.js"></script><noscript><style>html.se-pending body{visibility:visible!important}</style></noscript></head><body data-active="payments"><div data-shell><div class="page-head"><div><div class="eyebrow">Hosting</div><h1>Payment tracking</h1></div></div><div class="notice" style="margin-bottom:16px">Guests pay you directly (cash, bank transfer or M-Pesa). When you have received a payment, mark it as paid so the guest sees the status update. StayExplore does not process card payments.</div><div class="card table-wrap"><table><thead><tr><th>Reference</th><th>Guest</th><th>Date</th><th>Property</th><th>Method</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody data-host-payments></tbody></table></div><div class="grid grid-4" style="margin-top:18px"><div class="kpi"><strong data-stat="pay-gross">KSh 0</strong><span class="small">Received</span></div><div class="kpi"><strong data-stat="pay-pending">KSh 0</strong><span class="small">Awaiting payment</span></div><div class="kpi"><strong data-stat="pay-fees">KSh 0</strong><span class="small">Platform fees (on received)</span></div><div class="kpi"><strong data-stat="pay-earn">KSh 0</strong><span class="small">Host earnings</span></div></div></div></body></html>
+<!DOCTYPE html>
+<html lang="en" data-auth="host">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Payment tracking — StayExplore Kenya</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2716%27 fill=%27%230d3b2e%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-size=%2713%27 fill=%27white%27 text-anchor=%27middle%27 font-family=%27Georgia%27%3ESE%3C/text%3E%3C/svg%3E">
+    <script src="js/app.js"></script>
+    <noscript><style>html.se-pending body{visibility:visible!important}</style></noscript>
+  </head>
+  <body data-active="payments">
+    <div data-shell="">
+      <div class="page-head">
+        <div>
+          <div class="eyebrow">Hosting</div>
+          <h1>Payment tracking</h1>
+        </div>
+      </div>
+      <div class="notice" style="margin-bottom:16px">Guests pay you directly (cash, bank transfer or M-Pesa). When you have received a payment, mark it as paid so the guest sees the status update. StayExplore does not process card payments.</div>
+      <div class="card table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Reference</th>
+              <th>Guest</th>
+              <th>Date</th>
+              <th>Property</th>
+              <th>Method</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody data-host-payments=""></tbody>
+        </table>
+      </div>
+      <div class="grid grid-4" style="margin-top:18px">
+        <div class="kpi">
+          <strong data-stat="pay-gross">KSh 0</strong>
+          <span class="small">Received</span>
+        </div>
+        <div class="kpi">
+          <strong data-stat="pay-pending">KSh 0</strong>
+          <span class="small">Awaiting payment</span>
+        </div>
+        <div class="kpi">
+          <strong data-stat="pay-fees">KSh 0</strong>
+          <span class="small">Platform fees (on received)</span>
+        </div>
+        <div class="kpi">
+          <strong data-stat="pay-earn">KSh 0</strong>
+          <span class="small">Host earnings</span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
