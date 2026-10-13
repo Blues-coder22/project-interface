@@ -106,7 +106,7 @@ window.showToast=showToast;
 function navLinks(s){
   const p=currentPage(), hash=location.hash;
   const items=[['index.html','Home'],['search.html','Discover'],['search.html#attractions','Attractions'],['how-it-works.html','How it works'],['about.html','About us']];
-  if(s && s.role==='tourist'){ items.push(['bookings.html','My trips']); items.push(['messages.html','Messages']); }
+  if(s && s.role==='tourist'){ items.push(['bookings.html','My trips']); items.push(['favourites.html','Favourites']); items.push(['messages.html','Messages']); }
   return items.map(([h,l])=>{
     const f=h.split('#')[0], active = h.includes('#') ? (p===f && hash==='#attractions') : (p===f && hash!=='#attractions');
     return `<a href="${h}" ${active?'class="active" aria-current="page"':''}>${l}${h==='messages.html'?' <span class="msg-badge" data-msg-badge hidden></span>':''}</a>`;
