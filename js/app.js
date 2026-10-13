@@ -326,6 +326,30 @@ function bindPreviews(){
   });
 }
 const setStat = (k,v)=>document.querySelectorAll(`[data-stat="${k}"]`).forEach(e=>e.textContent=v);
+function monthlySeries(records,dateOf,valueOf){
+  const now=new Date(), months=Array.from({length:6},(_,i)=>new Date(now.getFullYear(),now.getMonth()-5+i,1)), totals=months.map(()=>0);
+  const indexes=new Map(months.map((d,i)=>[`${d.getFullYear()}-${d.getMonth()}`,i]));
+  records.forEach(record=>{
+    const timestamp=Number(dateOf(record));
+    if(!Number.isFinite(timestamp)||timestamp<=0) return;
+    const date=new Date(timestamp), index=indexes.get(`${date.getFullYear()}-${date.getMonth()}`);
+    if(index===undefined) return;
+    const value=Number(valueOf(record));
+    if(Number.isFinite(value)) totals[index]+=value;
+  });
+  return {months,totals};
+}
+function drawMonthlyTrend(root,series,description,valueLabel){
+  if(!root) return;
+  const width=500, xStart=42, xEnd=490, yTop=24, yBottom=154, max=Math.max(0,...series.totals), scale=max||1;
+  const xAt=i=>xStart+(xEnd-xStart)*i/Math.max(1,series.totals.length-1);
+  const yAt=value=>yBottom-(value/scale)*(yBottom-yTop);
+  const points=series.totals.map((value,i)=>`${xAt(i)},${yAt(value)}`).join(' ');
+  const labels=series.months.map((date,i)=>`<text x="${xAt(i)}" y="183" text-anchor="middle" fill="#6f746d" font-size="11">${date.toLocaleDateString('en-KE',{month:'short',year:'2-digit'})}</text>`).join('');
+  const circles=series.totals.map((value,i)=>`<circle cx="${xAt(i)}" cy="${yAt(value)}" r="4" fill="#0d3b2e"><title>${series.months[i].toLocaleDateString('en-KE',{month:'long',year:'numeric'})}: ${valueLabel(value)}</title></circle>`).join('');
+  const grid=[24,89,154].map(y=>`<line x1="${xStart}" y1="${y}" x2="${xEnd}" y2="${y}" stroke="#d9d5ca" stroke-width="1"/>`).join('');
+  root.innerHTML=`<svg viewBox="0 0 ${width} 200" role="img" aria-label="${description}" preserveAspectRatio="none"><title>${description}</title>${grid}<polyline points="${points}" fill="none" stroke="#0d3b2e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>${circles}${labels}</svg>`;
+}
 
 /* ---------- tourist: stay list, stay page ---------- */
 function smartScore(l,ctx){
@@ -726,11 +750,20 @@ function initHostDashboard(){
   if(!document.querySelector('[data-stat="host-active"]')) return;
   const mine=hostListings(), a=mine.filter(l=>l.status==='approved').length, p=mine.filter(l=>l.status==='pending'||l.status==='review').length;
   setStat('host-active',a); setStat('host-active-sub',`${a} approved · ${p} pending`); setStat('host-pending',`${p} listing${p===1?'':'s'}`);
-  const B=hostBookings(), live=B.filter(b=>bookingState(b)==='confirmed'), paid=B.filter(b=>b.payment==='paid'), pendAmt=B.filter(b=>b.payment==='pending'&&b.status!=='cancelled').reduce((t,b)=>t+b.total,0);
+  const B=hostBookings(), live=B.filter(b=>bookingState(b)==='confirmed'), paid=B.filter(b=>b.payment==='paid'&&b.status!=='cancelled'), pendAmt=B.filter(b=>b.payment==='pending'&&b.status!=='cancelled').reduce((t,b)=>t+b.total,0);
   setStat('host-upcoming',live.length); setStat('host-upcoming-sub',`${B.length} booking${B.length===1?'':'s'} in total`);
   setStat('host-income',money(paid.reduce((t,b)=>t+b.total-(b.fee||0),0))); setStat('host-income-sub',`From ${paid.length} paid booking${paid.length===1?'':'s'}${pendAmt?' · '+money(pendAmt)+' awaiting':''}`);
-  const rated=mine.filter(l=>+l.rating>0), rv=rated.reduce((t,l)=>t+(l.reviews||0),0), avg=rv?rated.reduce((t,l)=>t+l.rating*(l.reviews||0),0)/rv:0;
-  setStat('host-rating',avg?avg.toFixed(1):'New'); setStat('host-rating-sub',`${rv} guest review${rv===1?'':'s'}`);
+  const mineIds=new Set(mine.map(l=>l.id)), reviews=getReviews().filter(r=>mineIds.has(r.stayId)&&r.dir==='guest');
+  const publishedReviews=reviews.filter(r=>r.modStatus==='ok'&&isRevealed(r.ref));
+  const avg=publishedReviews.length?publishedReviews.reduce((t,r)=>t+r.rating,0)/publishedReviews.length:0;
+  setStat('host-rating',avg?avg.toFixed(1):'New'); setStat('host-rating-sub',`${publishedReviews.length} published guest review${publishedReviews.length===1?'':'s'}`);
+  const session=getSession(), reports=getIncidents().filter(i=>i.reporterId===session.id&&i.reporterRole==='host');
+  setStat('host-reviews',`${reviews.length} guest review${reviews.length===1?'':'s'}`);
+  setStat('host-reports',`${reports.length} report${reports.length===1?'':'s'}`);
+  const series=monthlySeries(paid,b=>b.paidAt||b.created,b=>Math.max(0,(+b.total||0)-(+b.fee||0)));
+  drawMonthlyTrend(document.querySelector('[data-host-income-chart]'),series,'Host net income from paid bookings over the last six months',money);
+  const note=document.querySelector('[data-host-income-note]');
+  if(note) note.textContent=paid.length?'Monthly net income from paid bookings; unpaid and cancelled bookings are excluded.':'No paid bookings yet; the trend is zero for the last six months.';
   const body=document.querySelector('[data-host-recent]');
   if(body){ const rec=B.slice().sort((x,y)=>y.created-x.created).slice(0,5);
     body.innerHTML=rec.length?rec.map(b=>`<tr><td>${esc(b.guestName)}</td><td>${esc(b.stay)}</td><td>${fmtRange(b)}</td><td>${BK_BADGE[bookingState(b)]}</td></tr>`).join(''):`<tr><td colspan="4" class="small" style="padding:18px">No bookings yet.</td></tr>`; }
@@ -815,6 +848,8 @@ function initAdminDashboard(){
   setStat('admin-users',accs.length); setStat('admin-users-sub',`${accs.filter(a=>a.role==='host').length} hosts · ${accs.filter(a=>a.role==='tourist').length} tourists`);
   setStat('admin-inc',getIncidents().length); setStat('admin-inc-sub',`${getIncidents().filter(i=>i.status==='open').length} open · ${getIncidents().filter(i=>i.severity==='critical'&&(i.status==='open'||i.status==='investigating')).length} critical`); setStat('admin-flagged',`${getReviews().filter(r=>r.flagged&&r.modStatus==='ok').length} flagged`); setStat('admin-inc-open',`${getIncidents().filter(i=>i.status==='open'||i.status==='investigating').length} open`);
   setStat('admin-bookings',B.length); setStat('admin-bookings-sub',`${B.filter(b=>bookingState(b)==='confirmed').length} upcoming`);
+  const userSeries=monthlySeries(accs,a=>joinedOf(a),()=>1);
+  drawMonthlyTrend(document.querySelector('[data-admin-users-chart]'),userSeries,'New user accounts created each month over the last six months',n=>`${n} user${n===1?'':'s'}`);
   const body=document.querySelector('[data-admin-recent]');
   if(body){
     const items=[...all.map(l=>({t:Date.parse(l.submitted)||0,item:l.name,type:'Listing',owner:(getAccounts().find(a=>a.id===l.ownerId)||{name:l.hostName||'—'}).name,badge:badge(l.status)})),
