@@ -10,14 +10,14 @@ window.__stayExploreLoaded = true;
 const K = { acc:'stayexplore_accounts', ses:'stayexplore_session', next:'stayexplore_next',
             flash:'stayexplore_flash', draft:'stayexplore_draft', bookings:'stayexplore_bookings',
             last:'stayexplore_last_booking', favs:'stayexplore_favs_',
-            listings:'stayexplore_listings', attractions:'stayexplore_attractions', allbk:'stayexplore_bookings_v2', reviews:'stayexplore_reviews', incidents:'stayexplore_incidents', threads:'stayexplore_threads' };
+            listings:'stayexplore_listings', attractions:'stayexplore_attractions', allbk:'stayexplore_bookings_v2', reviews:'stayexplore_reviews', incidents:'stayexplore_incidents', threads:'stayexplore_threads', outbox:'stayexplore_outbox' };
 const SESSION_HOURS = 24;
 const ROLE_PAGES = {
   tourist:['book.html','payment.html','confirmation.html','bookings.html','review.html','favourites.html','report.html','profile.html','messages.html'],
   host:['host-dashboard.html','host-add-listing.html','host-edit-listing.html','host-manage-listings.html','host-availability.html','host-manage-bookings.html','host-payments.html','host-reviews.html','host-report-incident.html','host-profile.html','host-messages.html'],
   admin:['admin-dashboard.html','admin-listing-approvals.html','admin-manage-users.html','admin-moderate-reviews.html','admin-incident-reports.html','admin-attractions.html','admin-profile.html']
 };
-const OPEN_PAGES = ['index.html','search.html','details.html','attraction-details.html','how-it-works.html','about.html','contact.html','help.html','privacy.html','terms.html','login.html','register.html'];
+const OPEN_PAGES = ['index.html','search.html','details.html','attraction-details.html','how-it-works.html','about.html','contact.html','help.html','privacy.html','terms.html','login.html','register.html','confirm-email.html','mailbox.html'];
 const STAYS = {
   'karura-house':{name:'Karura House',place:'Westlands, Nairobi',price:8400,rating:'4.8',cls:'user-house'},
   'high-rise':{name:'High Rise',place:'Kilimani, Nairobi',price:6200,rating:'4.6',cls:'user-mountain'},
@@ -31,7 +31,7 @@ const readJSON = (store,k,fb)=>{ try{ const v=store.get(k); return v?JSON.parse(
 
 /* ---------- accounts, hashing, session ---------- */
 const getAccounts = ()=>readJSON(ls,K.acc,[]);
-const saveAccounts = a=>ls.set(K.acc,JSON.stringify(a));
+const saveAccounts = a=>putLS(K.acc,JSON.stringify(a));   // returns false when browser storage is full
 async function sha(text){
   if(window.crypto && crypto.subtle){
     const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));
@@ -222,8 +222,10 @@ SEED_ATTRACTIONS.push(
   {id:'fort-jesus-mombasa',name:'Fort Jesus, Mombasa',county:'Mombasa',category:'Culture',region:null,lat:-4.0626,lng:39.6797,coordsSource:'pinned',tagline:'A 16th-century Portuguese fort on the Mombasa waterfront.',description:'A UNESCO World Heritage fort built by the Portuguese in 1593, overlooking the old harbour. Pair it with a walk through Mombasa Old Town.',terrain:'Coral-stone fort on the harbour',bestTime:'Year-round',climate:'Hot and humid',bestFor:'History, culture, city walks',images:[IMG.lamuTown,IMG.coastBeach],status:'published'},
   {id:'watamu-marine-park',name:'Watamu Marine National Park',county:'Kilifi',category:'Beach',region:null,lat:-3.3500,lng:40.0300,coordsSource:'pinned',tagline:'Coral gardens, turtles and quiet white beaches.',description:'A protected marine park with coral gardens, tidal pools and turtle conservation, beside quiet beaches and the Gede ruins.',terrain:'Coral reef, tidal pools and white beaches',bestTime:'October – March',climate:'Hot and humid',bestFor:'Snorkelling, turtles, relaxing',images:[IMG.coastBeach],status:'published'}
 );
+const SAMPLE_TOURIST={id:'tourist-zawadi',name:'Zawadi Mwangi',email:'tourist@stayexplore.co.ke',phone:'+254 700 123 456'};
 async function ensureSampleHosts(){
   const list=getAccounts(); let changed=false;
+  if(!list.some(a=>a.id===SAMPLE_TOURIST.id)){ const salt='sample-'+SAMPLE_TOURIST.id; list.push({id:SAMPLE_TOURIST.id,created:Date.parse('2026-09-01'),name:SAMPLE_TOURIST.name,email:SAMPLE_TOURIST.email,role:'tourist',phone:SAMPLE_TOURIST.phone,country:'Kenya',sample:true,salt,hash:await sha(salt+'Tourist123!')}); changed=true; }
   for(const h of SAMPLE_HOSTS){
     if(list.some(a=>a.id===h.id)) continue;
     const salt='sample-'+h.id;
@@ -335,7 +337,7 @@ function smartScore(l,ctx){
 }
 function stayCardHTML(l,near){
   const r=+l.rating||0, amen=(l.amenities||[]).slice(0,3).join(' · '), km=near&&hasGeo(l)?distKm(near,{lat:+l.lat,lng:+l.lng}):null, sc=smartScore(l,near);
-  return `<article class="card pad list-card filterable" data-price="${+l.price}" data-rating="${r}" data-score="${sc.score}" data-region="${esc(l.region||'')}" data-id="${esc(l.id)}" data-lat="${hasGeo(l)?+l.lat:''}" data-lng="${hasGeo(l)?+l.lng:''}" data-dist="${km===null?'':km.toFixed(1)}" data-amenities="${amenSlugs(l.amenities).join(',')}"><div class="photo" style="${bgStyle(coverOf(l))}"></div><div><div class="eyebrow">Smart score ${sc.score}</div><h3>${esc(l.name)}</h3><div class="rating">${r?`${stars(r)} <span class="small">${r.toFixed(1)} · ${l.reviews||0} reviews</span>`:'<span class="small">New listing · no reviews yet</span>'}</div><p class="small">${esc(l.location)}${amen?' · '+esc(amen):''}</p>${km!==null?`<p class="small" style="color:var(--forest);font-weight:700">◉ ${fmtKm(km)} away</p>`:''}</div><div><div class="price">KES ${Math.round(l.price).toLocaleString('en-KE')}<small>/night</small></div><a class="btn btn-sm" href="details.html?id=${encodeURIComponent(l.id)}">View stay</a></div></article>`;
+  return `<article class="card pad list-card filterable" data-price="${+l.price}" data-rating="${r}" data-score="${sc.score}" data-region="${esc(l.region||'')}" data-id="${esc(l.id)}" data-lat="${hasGeo(l)?+l.lat:''}" data-lng="${hasGeo(l)?+l.lng:''}" data-dist="${km===null?'':km.toFixed(1)}" data-amenities="${amenSlugs(l.amenities).join(',')}"><div class="photo" style="${bgStyle(coverOf(l))}"></div><div><div class="eyebrow">Smart score ${sc.score}</div><h3>${esc(l.name)}</h3><div class="rating">${r?`${stars(r)} <span class="small">${r.toFixed(1)} · ${l.reviews||0} reviews</span>`:'<span class="small">New listing · no reviews yet</span>'}</div><p class="small">${esc(l.location)}${amen?' · '+esc(amen):''}${ownerVerified(l)?' · <span class="vh">✓ Verified host</span>':''}</p>${km!==null?`<p class="small" style="color:var(--forest);font-weight:700">◉ ${fmtKm(km)} away</p>`:''}</div><div><div class="price">KES ${Math.round(l.price).toLocaleString('en-KE')}<small>/night</small></div><a class="btn btn-sm" href="details.html?id=${encodeURIComponent(l.id)}">View stay</a></div></article>`;
 }
 function attractionCardHTML(a){
   return `<article class="card"><div class="photo" style="${bgStyle(coverOf(a))}"></div><div class="pad"><div class="eyebrow">${esc(a.category)} · ${esc(a.county)}</div><h3>${esc(a.name)}</h3><p class="small">${esc(a.tagline||'')}</p>${a._km!==undefined?`<p class="small" style="color:var(--forest);font-weight:700">◉ ${fmtKm(a._km)} away</p>`:''}<a class="btn btn-sm" href="attraction-details.html?id=${encodeURIComponent(a.id)}">Explore attraction</a></div></article>`;
@@ -371,7 +373,7 @@ function initStayPage(){
   const reviews=pr.length?`<div class="card pad" style="margin-top:20px"><h2>Guest reviews</h2><div class="timeline">${pr.slice(0,6).map(x=>`<div><div class="rating">${stars(x.rating)} <span class="status success" style="font-size:10px">${x.seed?'Guest':'Verified stay'}</span></div><strong>${esc(firstName(x.authorName))}</strong> <span class="small">· ${longDate(x.created)}</span><p class="small">${esc(x.text)}</p></div>`).join('')}</div></div>`:`<div class="card pad" style="margin-top:20px"><h2>Guest reviews</h2><p class="small">No reviews yet. Reviews come only from guests with a completed booking.</p></div>`;
   window.__stayMapJob=()=>{ const el=document.querySelector('#stayMap'); if(el) mountNearMap(el,Object.assign(stayPin(l),{}),na.map(attrPin)); };
   const banner=l.status!=='approved'?`<div class="notice" style="margin-bottom:16px"><strong>Preview.</strong> This listing is “${esc((STATUS[l.status]||[,l.status])[1])}” and is not visible to tourists yet.</div>`:'';
-  root.innerHTML=`${gallery}<section class="page" style="padding-top:30px"><div class="grid detail-layout"><div>${banner}<div class="eyebrow">${esc(l.type||'Stay')}</div><h1>${esc(l.name)}</h1><p class="rating">${esc((l.location||'').toUpperCase())}${r?` · ${r.toFixed(1)} (${l.reviews||0} REVIEWS)`:' · NEW LISTING'}</p><p class="sub" style="margin-top:18px">${esc(l.description)}</p><section class="detail-info-grid" aria-label="Stay ratings and amenities">${ratingCard}<div class="card pad amenities-card"><div class="eyebrow">What this stay offers</div><h2>Amenities</h2><div class="amenities-grid">${amen}</div></div></section>${l.rules?`<div class="card pad" style="margin-top:20px"><h2>House rules</h2><p class="small" style="font-size:13px">${esc(l.rules)}</p></div>`:''}${nearby}${reviews}</div><aside><div class="card pad" style="position:sticky;top:95px"><div class="price">KSh ${Math.round(l.price).toLocaleString('en-KE')} <small>/ night</small></div><div class="grid grid-2" style="margin-top:18px"><div class="field"><label>CHECK IN</label><input type="date" value="2026-10-14" data-draft="checkin" required></div><div class="field"><label>CHECK OUT</label><input type="date" value="2026-10-18" data-draft="checkout" required></div></div><div class="field" style="margin-top:14px"><label>GUESTS</label><select data-draft="guests"><option>2 guests</option><option>1 guest</option><option>3 guests</option></select></div><a class="btn" style="display:flex;margin-top:16px" href="book.html" data-reserve>Reserve</a>${s&&s.role!=='tourist'?'':`<a class="btn btn-outline" style="display:flex;margin-top:10px" href="messages.html?stay=${esc(l.id)}">Message host</a>`}<a class="home-link" style="display:block;text-align:center;margin-top:13px" href="favourites.html" data-fav="${esc(l.id)}" data-label="♡ Save to favourites">♡ Save to favourites</a><a class="home-link" style="display:block;text-align:center;margin-top:9px" href="report.html?stay=${esc(l.id)}">Report this listing</a></div></aside></div></section>`;
+  root.innerHTML=`${gallery}<section class="page" style="padding-top:30px"><div class="grid detail-layout"><div>${banner}<div class="eyebrow">${esc(l.type||'Stay')}</div><h1>${esc(l.name)}</h1><p class="rating">${esc((l.location||'').toUpperCase())}${r?` · ${r.toFixed(1)} (${l.reviews||0} REVIEWS)`:' · NEW LISTING'}</p>${ownerVerified(l)?'<p class="vh-line">✓ Verified host</p>':''}<p class="sub" style="margin-top:18px">${esc(l.description)}</p><section class="detail-info-grid" aria-label="Stay ratings and amenities">${ratingCard}<div class="card pad amenities-card"><div class="eyebrow">What this stay offers</div><h2>Amenities</h2><div class="amenities-grid">${amen}</div></div></section>${l.rules?`<div class="card pad" style="margin-top:20px"><h2>House rules</h2><p class="small" style="font-size:13px">${esc(l.rules)}</p></div>`:''}${nearby}${reviews}</div><aside><div class="card pad" style="position:sticky;top:95px"><div class="price">KSh ${Math.round(l.price).toLocaleString('en-KE')} <small>/ night</small></div><div class="grid grid-2" style="margin-top:18px"><div class="field"><label>CHECK IN</label><input type="date" value="2026-10-14" data-draft="checkin" required></div><div class="field"><label>CHECK OUT</label><input type="date" value="2026-10-18" data-draft="checkout" required></div></div><div class="field" style="margin-top:14px"><label>GUESTS</label><select data-draft="guests"><option>2 guests</option><option>1 guest</option><option>3 guests</option></select></div><a class="btn" style="display:flex;margin-top:16px" href="book.html" data-reserve>Reserve</a>${s&&s.role!=='tourist'?'':`<a class="btn btn-outline" style="display:flex;margin-top:10px" href="messages.html?stay=${esc(l.id)}">Message host</a>`}<a class="home-link" style="display:block;text-align:center;margin-top:13px" href="favourites.html" data-fav="${esc(l.id)}" data-label="♡ Save to favourites">♡ Save to favourites</a><a class="home-link" style="display:block;text-align:center;margin-top:9px" href="report.html?stay=${esc(l.id)}">Report this listing</a></div></aside></div></section>`;
   window.__stayMapJob&&window.__stayMapJob();
 }
 
@@ -448,6 +450,7 @@ async function handleListing(form){
   const geo=geoFromForm(form,`${f.location} ${f.name}`,list.find(x=>x.id===form.dataset.id));
   if(geo.error) return formMessage(form,geo.error);
   if(mode==='host-add'){
+    const ne=needEmailConfirmed(); if(ne) return formMessage(form,ne);
     const l=Object.assign({id:uniqueId(f.name,list.map(x=>x.id)),region,rating:0,reviews:0,score:78,bookings:0,status:'pending',ownerId:s.id,hostName:s.name,submitted:todayISO(),images:[]},f,geo);
     l.images=imgs.length?imgs:defaultImages(l);
     list.unshift(l);
@@ -578,6 +581,7 @@ function bindUser(){
 function initProfile(){
   const form=document.querySelector('[data-profile-form]'), s=getSession(); if(!form||!s) return;
   const a=getAccounts().find(x=>x.id===s.id)||s;
+  document.querySelectorAll('[data-account-badge]').forEach(el=>{ el.textContent=a.role==='host'?`Host · ${VERIF_LABEL[verifState(a)]} · Email ${isEmailConfirmed(a)?'confirmed':'not confirmed'}`:`${roleLabel(a.role)} account · Email ${isEmailConfirmed(a)?'confirmed':'not confirmed'}`; });
   ['phone','country','business'].forEach(n=>{ const el=form.querySelector(`[name="${n}"]`); if(el && a[n]!==undefined) el.value=a[n]; });
 }
 async function handleProfile(form){
@@ -588,11 +592,13 @@ async function handleProfile(form){
   if(name.length<2) return formMessage(form,'Please enter your full name.');
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return formMessage(form,'Please enter a valid email address.');
   if(list.some(x=>x.id!==a.id && x.email===email)) return formMessage(form,'Another account already uses that email address.');
+  const emailChanged=a.email!==email && a.role!=='admin';
   a.name=name; a.email=email;
+  if(emailChanged){ a.emailVerified=false; issueEmailToken(a); }
   ['phone','country','business'].forEach(n=>{ if(form.querySelector(`[name="${n}"]`)) a[n]=v(n); });
   if(!putLS(K.acc,JSON.stringify(list))) return formMessage(form,QUOTA_MSG);
   ls.set(K.ses,JSON.stringify(Object.assign({},getSession(),{name:a.name,email:a.email})));   // keep the same expiry
-  bindUser(); showToast(form.dataset.success||'Profile updated');
+  bindUser(); showToast(emailChanged?'Profile updated. We sent a confirmation link to your new address (see your demo mailbox).':(form.dataset.success||'Profile updated'));
 }
 function initPhotoUpload(){
   document.querySelectorAll('[data-photo-input]').forEach(inp=>inp.addEventListener('change',async()=>{
@@ -655,6 +661,7 @@ function cancelBooking(ref,by){
 /* called when the guest pays. Returns an error message, or '' when the booking was saved */
 function completeBooking(){
   const s=getSession(); if(!s) return 'Please sign in to book.';
+  const ne=needEmailConfirmed(); if(ne) return ne;
   const d=getDraft()||Object.assign({stayId:'karura-house',checkin:'2026-10-14',checkout:'2026-10-18',guests:'2 guests'},STAYS['karura-house']);
   const l=listingById(d.stayId||'karura-house');
   if(!l || l.status!=='approved') return 'This stay is not open for booking right now.';
@@ -779,19 +786,21 @@ function hostCell(l){
 }
 function initAdminUsers(){
   const body=document.querySelector('[data-admin-users]'); if(!body) return;
-  const me=getSession(), filter=document.querySelector('#userFilter');
+  const me=getSession(), filter=document.querySelector('#userFilter'), openVerify=initVerifyReview();
   const draw=()=>{
     const accs=getAccounts(), L=getListings(), B=getAllBookings(), f=filter?filter.value:'all';
-    const rows=accs.filter(a=>f==='all'||a.role===f).sort((a,b)=>joinedOf(b)-joinedOf(a));
+    const rows=accs.filter(a=>f==='all'||(f==='verify'?(a.role==='host'&&verifState(a)==='pending'):a.role===f)).sort((a,b)=>joinedOf(b)-joinedOf(a));
     body.innerHTML=rows.map(a=>{
       const owned=new Set(L.filter(l=>l.ownerId===a.id).map(l=>l.id));
       const flags=a.role==='tourist'?getIncidents().filter(i=>i.againstId===a.id&&i.reporterRole==='host').length:0;
       const act=a.role==='host'?`${owned.size} listing${owned.size===1?'':'s'} · ${B.filter(b=>owned.has(b.stayId)).length} bookings`:a.role==='tourist'?`${B.filter(b=>b.guestId===a.id).length} booking${B.filter(b=>b.guestId===a.id).length===1?'':'s'}${flags?` · <span style="color:var(--danger);font-weight:700">${flags} host flag${flags===1?'':'s'}</span>`:''}`:'—';
       const j=joinedOf(a);
-      return `<tr><td><strong>${esc(a.name)}</strong>${a.sample?' <span class="small">· sample</span>':''}</td><td>${esc(a.email)}</td><td>${esc(roleLabel(a.role))}</td><td>${j?fmtStamp(j):'—'}</td><td class="small">${act}</td><td>${a.suspended?'<span class="status danger">Suspended</span>':'<span class="status success">Active</span>'}</td><td>${a.role==='admin'||a.id===me.id?'':`<button type="button" class="btn ${a.suspended?'':'btn-danger '}btn-sm" data-susp="${esc(a.id)}">${a.suspended?'Reactivate':'Suspend'}</button>`}</td></tr>`; }).join('')||`<tr><td colspan="7" class="small" style="padding:24px">No users match.</td></tr>`;
-    setStat('u-total',accs.length); setStat('u-hosts',accs.filter(a=>a.role==='host').length); setStat('u-tourists',accs.filter(a=>a.role==='tourist').length);
+      return `<tr><td><strong>${esc(a.name)}</strong>${a.sample?' <span class="small">· sample</span>':''}</td><td>${esc(a.email)}</td><td>${esc(roleLabel(a.role))}</td><td>${j?fmtStamp(j):'—'}</td><td class="small">${act}</td><td>${a.suspended?'<span class="status danger">Suspended</span>':'<span class="status success">Active</span>'}${isEmailConfirmed(a)?'':' <span class="status warning">Email unconfirmed</span>'}${a.role==='host'?' '+VERIF_BADGE(verifState(a)):''}</td><td>${a.role==='host'&&['pending','rejected','verified'].includes(verifState(a))&&a.verification?`<button type="button" class="btn ${verifState(a)==='pending'?'':'btn-outline '}btn-sm" data-vr-open="${esc(a.id)}">${verifState(a)==='pending'?'Review ID':'View ID'}</button> `:''}${a.role==='admin'||a.id===me.id?'':`<button type="button" class="btn ${a.suspended?'':'btn-danger '}btn-sm" data-susp="${esc(a.id)}">${a.suspended?'Reactivate':'Suspend'}</button>`}</td></tr>`; }).join('')||`<tr><td colspan="7" class="small" style="padding:24px">No users match.</td></tr>`;
+    setStat('u-total',accs.length); setStat('u-hosts',accs.filter(a=>a.role==='host').length); setStat('u-tourists',accs.filter(a=>a.role==='tourist').length); setStat('u-pending',accs.filter(a=>a.role==='host'&&verifState(a)==='pending').length);
   };
+  window.addEventListener('se-users-changed',draw);
   body.addEventListener('click',e=>{
+    const vo=e.target.closest('[data-vr-open]'); if(vo){ openVerify(vo.dataset.vrOpen); return; }
     const b=e.target.closest('[data-susp]'); if(!b) return;
     const accs=getAccounts(), a=accs.find(x=>x.id===b.dataset.susp); if(!a||a.role==='admin') return;
     if(!a.suspended && !confirm(`Suspend ${a.name}? They will be signed out and unable to sign in.`)) return;
@@ -1102,6 +1111,7 @@ function integrityChecks(l){
   out.push(l.price<1500||l.price>60000?{level:'warn',text:`Nightly price KSh ${Math.round(l.price).toLocaleString('en-KE')} is outside the usual range (1,500–60,000).`}:{level:'ok',text:'Price is within the expected range.'});
   const owner=getAccounts().find(a=>a.id===l.ownerId);
   out.push(owner?{level:'ok',text:`Host account exists: ${owner.name}${owner.suspended?' (SUSPENDED)':''}.`}:{level:'warn',text:'The host has no registered account.'});
+  if(owner) out.push(verifState(owner)==='verified'?{level:'ok',text:'Host identity is verified.'}:{level:'warn',text:`Host identity is not verified (${VERIF_LABEL[verifState(owner)]||'no ID reviewed'}).`});
   if(owner&&owner.suspended) out.push({level:'warn',text:'The host account is suspended.'});
   out.push(l.coordsSource==='pinned'?{level:'ok',text:'Location pinned on the map.'}:{level:'warn',text:hasGeo(l)?'Map location is only approximate (the host did not pin it).':'No map location; tourists cannot find it on the map.'});
   const own=(l.images||[]).some(i=>String(i).startsWith('data:'));
@@ -1394,6 +1404,172 @@ function initMessages(){
   const ta=root.querySelector('#msgText'); if(ta&&(draft||activeId)) ta.focus();
 }
 
+/* ---------- admin: back up, move and reset the demo data (everything lives in this browser) ---------- */
+function initBackup(){
+  const root=document.querySelector('[data-backup]'); if(!root) return;
+  const mine=()=>{ const keys=[]; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.startsWith('stayexplore_')) keys.push(k); } return keys; };
+  const dataKeys=()=>mine().filter(k=>k!==K.ses);
+  const size=()=>{ let n=0; dataKeys().forEach(k=>n+=(localStorage.getItem(k)||'').length); return n; };
+  const paint=()=>{ const kb=Math.round(size()/1024); root.querySelector('[data-backup-info]').textContent=`${getAccounts().length} accounts · ${getListings().length} listings · ${getAllBookings().length} bookings · about ${kb>1024?(kb/1024).toFixed(1)+' MB':kb+' KB'} stored in this browser`; };
+  root.querySelector('[data-export]').addEventListener('click',()=>{
+    const data={}; dataKeys().forEach(k=>data[k]=localStorage.getItem(k));
+    const blob=new Blob([JSON.stringify({app:'stayexplore-kenya',version:1,exported:new Date().toISOString(),data})],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='stayexplore-backup-'+todayISO()+'.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    showToast(`Backup downloaded (${Object.keys(data).length} items)`);
+  });
+  const file=root.querySelector('[data-import]');
+  file.addEventListener('change',async()=>{
+    const f=file.files&&file.files[0]; if(!f) return;
+    try{
+      const j=JSON.parse(await f.text());
+      if(!j||j.app!=='stayexplore-kenya'||!j.data||typeof j.data!=='object') throw new Error('That file is not a StayExplore backup.');
+      const keys=Object.keys(j.data); if(!keys.length||keys.some(k=>!k.startsWith('stayexplore_')||k===K.ses||typeof j.data[k]!=='string')) throw new Error('That backup file is damaged or not valid.');
+      if(!confirm(`Restore this backup?\n\nIt replaces everything currently saved in this browser (${getAccounts().length} accounts, ${getListings().length} listings) with the backup's data. You will stay signed in as admin.`)){ file.value=''; return; }
+      const old={}; dataKeys().forEach(k=>old[k]=localStorage.getItem(k));
+      try{ dataKeys().forEach(k=>localStorage.removeItem(k)); keys.forEach(k=>localStorage.setItem(k,j.data[k])); }
+      catch(e){ dataKeys().forEach(k=>localStorage.removeItem(k)); Object.keys(old).forEach(k=>{ try{ localStorage.setItem(k,old[k]); }catch{} }); throw new Error('This browser does not have enough storage for that backup. Nothing was changed.'); }
+      setFlash('Backup restored. All accounts, listings and photos from the backup are now available.'); location.reload();
+    }catch(e){ showToast(e.message||'The backup could not be restored.'); file.value=''; }
+  });
+  root.querySelector('[data-reset]').addEventListener('click',()=>{
+    if(!confirm('Reset to the original sample data?\n\nThis deletes every account you created, plus all listings, photos, bookings, reviews, reports and messages saved in this browser. The built-in admin and sample accounts come back. This cannot be undone.')) return;
+    dataKeys().forEach(k=>localStorage.removeItem(k)); setFlash('Sample data restored.'); location.reload();
+  });
+  paint();
+}
+
+/* ======================================================================
+   TRUST & SECURITY (project document §1.4): EMAIL CONFIRMATION + HOST VERIFICATION
+   A frontend cannot send real email, so confirmation messages are delivered to a
+   "demo mailbox" that stands in for the user's inbox. Host verification is a real
+   request-and-review workflow between host and administrator.
+   ====================================================================== */
+const getOutbox = ()=>readJSON(ls,K.outbox,[]);
+const saveOutbox = a=>putLS(K.outbox,JSON.stringify(a));
+const isEmailConfirmed = a=>!!a && a.emailVerified!==false;           // accounts created before this feature count as confirmed
+const verifState = a=>!a?'unverified':(a.verification?a.verification.status:(a.sample?'verified':'unverified'));
+const VERIF_LABEL = { unverified:'Not verified', pending:'Verification pending', verified:'Verified', rejected:'Verification rejected' };
+const VERIF_BADGE = st=>`<span class="status ${st==='verified'?'success':st==='pending'?'warning':st==='rejected'?'danger':'info'}">${VERIF_LABEL[st]||st}</span>`;
+const ownerOf = l=>getAccounts().find(a=>a.id===l.ownerId);
+const ownerVerified = l=>verifState(ownerOf(l))==='verified';
+const newToken = ()=>Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
+
+function sendEmail(to,subject,text,link){
+  const o=getOutbox(); o.unshift({id:'em-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),to:String(to).toLowerCase(),subject,text,link:link||null,t:Date.now()});
+  saveOutbox(o.slice(0,200));
+}
+/* creates a fresh single-use link (valid 24 hours) and "sends" it. The caller saves the accounts list. */
+function issueEmailToken(acc){
+  acc.emailToken=newToken(); acc.emailTokenExp=Date.now()+24*3600*1000;
+  sendEmail(acc.email,'Confirm your email address',`Hi ${firstName(acc.name)}, welcome to StayExplore Kenya! Please confirm your email address so you can ${acc.role==='host'?'list your properties':'book stays'}. This link works once and expires in 24 hours.`,{href:'confirm-email.html?token='+acc.emailToken,text:'Confirm my email address'});
+}
+function needEmailConfirmed(){
+  const s=getSession(); if(!s||s.role==='admin') return '';
+  return isEmailConfirmed(getAccounts().find(x=>x.id===s.id))?'':'Please confirm your email address first. Open your demo mailbox and click the confirmation link.';
+}
+
+/* ---------- confirm-email.html ---------- */
+function initConfirmEmail(){
+  const root=document.querySelector('[data-confirm-email]'); if(!root) return;
+  const token=new URLSearchParams(location.search).get('token')||'', accs=getAccounts(), a=token?accs.find(x=>x.emailToken&&x.emailToken===token):null, s=getSession();
+  const card=(title,body,actions='')=>{ root.innerHTML=`<div class="eyebrow">Email confirmation</div><h1>${title}</h1><div class="card pad" style="max-width:640px;margin-top:20px"><p>${body}</p><div class="actions" style="margin-top:16px">${actions}</div></div>`; };
+  if(!a) return card('This link is not valid.','The confirmation link is invalid, or it has already been used. If you have not confirmed your email yet, open your demo mailbox and use the newest message, or request a new link there.','<a class="btn" href="mailbox.html">Open demo mailbox</a>');
+  if(Date.now()>a.emailTokenExp) return card('This link has expired.','Confirmation links work for 24 hours. Open your demo mailbox and request a new link.','<a class="btn" href="mailbox.html">Open demo mailbox</a>');
+  a.emailVerified=true; delete a.emailToken; delete a.emailTokenExp;
+  if(!saveAccounts(accs)) return card('We could not save that.',QUOTA_MSG);
+  const mine=s&&s.id===a.id;
+  card('Email confirmed.',`Thank you, ${esc(firstName(a.name))}. <strong>${esc(a.email)}</strong> is confirmed. You can now ${a.role==='host'?'list properties and receive bookings':'book stays'}.`,mine?`<a class="btn" href="${routeForRole(a.role)}">Continue</a>`:'<a class="btn" href="login.html">Sign in</a>');
+}
+
+/* ---------- mailbox.html (stands in for the user's real inbox) ---------- */
+function initMailbox(){
+  const root=document.querySelector('[data-mailbox]'); if(!root) return;
+  const s=getSession();
+  if(!s){ root.innerHTML='<div class="card pad empty"><p class="small">Sign in to see the messages sent to your email address. <a class="home-link" href="login.html">Sign in</a></p></div>'; return; }
+  const draw=()=>{
+    const acc=getAccounts().find(x=>x.id===s.id)||s, mails=getOutbox().filter(m=>m.to===acc.email);
+    root.innerHTML=`<div class="notice" style="margin-bottom:16px"><strong>Demo mailbox.</strong> A website prototype cannot send real email, so the messages StayExplore would send to <strong>${esc(acc.email)}</strong> appear here instead. In a live system they arrive in your normal inbox.</div>${!isEmailConfirmed(acc)?`<div class="notice" style="border-color:#e3b3ab;background:#fdf1ef;margin-bottom:16px"><strong>Your email is not confirmed yet.</strong> Open the message below and click the link. <button type="button" class="btn btn-outline btn-sm" data-resend style="margin-left:8px">Send a new link</button></div>`:''}
+    <div class="grid">${mails.map(m=>`<article class="card pad"><div class="eyebrow">${longDate(m.t)} · ${esc(timeAgo(m.t))}</div><h3>${esc(m.subject)}</h3><p>${esc(m.text)}</p>${m.link?`<a class="btn btn-sm" href="${esc(m.link.href)}">${esc(m.link.text)}</a>`:''}</article>`).join('')||'<div class="card pad empty"><p class="small">No messages yet.</p></div>'}</div>`;
+  };
+  root.addEventListener('click',e=>{
+    if(!e.target.closest('[data-resend]')) return; const accs=getAccounts(), a=accs.find(x=>x.id===s.id); if(!a||isEmailConfirmed(a)) return;
+    issueEmailToken(a); if(saveAccounts(accs)){ draw(); showToast('A new confirmation link was sent to your demo mailbox. Older links no longer work.'); }
+  });
+  draw();
+}
+
+/* ---------- reminder banner ---------- */
+function renderVerifyBanner(){
+  const s=getSession(); if(!s||s.role==='admin'||document.querySelector('.verify-banner')||['mailbox.html','confirm-email.html'].includes(currentPage())) return;
+  const a=getAccounts().find(x=>x.id===s.id); if(!a) return;
+  const lines=[]; const file=currentPage();
+  if(!isEmailConfirmed(a)) lines.push(`<strong>Confirm your email address</strong> to ${a.role==='host'?'list properties':'book stays'}. <a href="mailbox.html">Open demo mailbox</a>`);
+  if(a.role==='host' && isEmailConfirmed(a) && ['unverified','rejected'].includes(verifState(a)) && ['host-dashboard.html','host-manage-listings.html','host-add-listing.html'].includes(file)) lines.push(`<strong>${verifState(a)==='rejected'?'Your verification was not approved.':'Your host identity is not verified yet.'}</strong> Verified hosts get a “✓ Verified host” badge and guests trust them more. <a href="host-profile.html">Verify now</a>`);
+  if(!lines.length) return;
+  const b=document.createElement('div'); b.className='verify-banner'; b.setAttribute('role','status'); b.innerHTML=lines.join('<br>');
+  const target=document.querySelector('.page-head')||document.querySelector('main'); if(!target) return;
+  if(target.matches('main')) target.prepend(b); else target.parentNode.insertBefore(b,target);
+}
+
+/* ---------- host: submit identity for verification ---------- */
+function initHostVerify(){
+  const root=document.querySelector('[data-verify]'); if(!root) return;
+  const s=getSession(); bindPreviews();
+  const draw=()=>{
+    const acc=getAccounts().find(x=>x.id===s.id)||s, st=verifState(acc), v=acc.verification||{};
+    const form=`<div class="grid" data-verify-form><div class="grid grid-2"><div class="field"><label>LEGAL NAME (AS ON YOUR ID)</label><input name="legalName" value="${esc(v.legalName||acc.name)}"></div><div class="field"><label>ID TYPE</label><select name="idType"><option>National ID</option><option>Passport</option></select></div></div><div class="grid grid-2"><div class="field"><label>ID NUMBER</label><input name="idNumber" maxlength="14" placeholder="e.g. 12345678" value="${esc(v.idNumber||'')}"></div><div class="field"><label>PROPERTY PROOF REFERENCE (OPTIONAL)</label><input name="businessRef" maxlength="60" placeholder="Title deed, lease, permit or business no." value="${esc(v.businessRef||'')}"></div></div><div class="field"><label>PHOTO OF YOUR ID</label><input type="file" name="idPhoto" accept="image/*"><span class="small">Only administrators can see this photo. It is used to check that you are a real person who can host.</span></div><label class="check"><input type="checkbox" name="consent"> I confirm the details are mine and correct.</label><div class="form-error" role="alert" hidden></div><button type="button" class="btn" data-verify-submit>${st==='rejected'?'Resubmit for verification':'Submit for verification'}</button></div>`;
+    const body=st==='verified'?`<div class="notice"><strong>You are a verified host.</strong> ${v.decidedAt?'Verified on '+longDate(v.decidedAt)+'. ':''}Guests see a “✓ Verified host” badge on your listings.</div>`
+      :st==='pending'?`<div class="notice"><strong>Request received.</strong> You submitted it on ${longDate(v.submitted)}. An administrator will review it and you will get a message in your demo mailbox.</div>`
+      :`${st==='rejected'?`<div class="notice" style="border-color:#e3b3ab;background:#fdf1ef;margin-bottom:12px"><strong>Not approved.</strong> ${esc(v.reason||'Please check your details and try again.')}</div>`:'<p class="small" style="margin-bottom:12px">Verification helps protect guests and hosts. An administrator reviews your ID before your account is marked as verified.</p>'}${form}`;
+    root.innerHTML=`<div class="card pad"><div class="eyebrow">Host verification</div><h2>${VERIF_BADGE(st)}</h2><div style="margin-top:12px">${body}</div></div>`;
+  };
+  root.addEventListener('click',async e=>{
+    const btn=e.target.closest('[data-verify-submit]'); if(!btn) return;
+    const box=root.querySelector('[data-verify-form]'), err=m=>{ const x=box.querySelector('.form-error'); x.textContent=m; x.hidden=false; };
+    const v=n=>(box.querySelector(`[name="${n}"]`)||{}).value?.trim()||'';
+    const legalName=v('legalName'), idNumber=v('idNumber').toUpperCase(), file=box.querySelector('[name=idPhoto]').files[0];
+    if(legalName.length<3) return err('Please enter your full legal name.');
+    if(!/^[A-Z0-9]{6,14}$/.test(idNumber)) return err('Enter your ID or passport number (6–14 letters and numbers, no spaces).');
+    if(!file) return err('Please attach a clear photo of your ID.');
+    if(!box.querySelector('[name=consent]').checked) return err('Please confirm the details are yours.');
+    const nerr=needEmailConfirmed(); if(nerr) return err(nerr);
+    let photo; try{ photo=await readImage(file,1000,.7); }catch(ex){ return err(ex.message); }
+    const accs=getAccounts(), a=accs.find(x=>x.id===s.id); if(!a) return err('Account not found.');
+    a.verification={status:'pending',legalName,idType:v('idType'),idNumber,businessRef:v('businessRef'),idPhoto:photo,submitted:Date.now()};
+    if(!saveAccounts(accs)) return err(QUOTA_MSG);
+    sendEmail(a.email,'We received your verification request','Thank you. An administrator will review your ID shortly. We will message you when it has been checked.');
+    draw(); showToast('Verification request submitted');
+  });
+  draw();
+}
+
+/* ---------- admin: review host verification requests (called from initAdminUsers) ---------- */
+function initVerifyReview(){
+  const panel=document.querySelector('#verifyPanel'); if(!panel) return () => {};
+  let current=null;
+  const open=id=>{
+    const a=getAccounts().find(x=>x.id===id); if(!a) return; current=id; const v=a.verification||{};
+    panel.hidden=false;
+    panel.querySelector('#vrBody').innerHTML=`<h2>${esc(a.name)} <span class="small">· ${esc(a.email)}</span></h2><p class="small">Submitted ${v.submitted?longDate(v.submitted):'—'} · ${VERIF_BADGE(verifState(a))}</p><div class="grid grid-2" style="margin-top:12px"><div><div class="kpi"><span class="small">LEGAL NAME</span><strong>${esc(v.legalName||'—')}</strong></div><div class="kpi" style="margin-top:8px"><span class="small">${esc((v.idType||'ID').toUpperCase())} NUMBER</span><strong>${esc(v.idNumber||'—')}</strong></div><div class="kpi" style="margin-top:8px"><span class="small">PROPERTY PROOF</span><strong>${esc(v.businessRef||'Not provided')}</strong></div><div class="kpi" style="margin-top:8px"><span class="small">LISTINGS</span><strong>${getListings().filter(l=>l.ownerId===a.id).length}</strong></div></div><div>${v.idPhoto?`<a href="${v.idPhoto}" target="_blank" rel="noopener" title="Open full size"><img class="id-photo" src="${v.idPhoto}" alt="ID photo submitted by ${esc(a.name)}"></a>`:'<p class="small">No photo attached.</p>'}</div></div>`;
+    panel.querySelector('[name=reason]').value=''; panel.querySelector('.form-error').hidden=true;
+    panel.querySelector('[data-vr-verify]').disabled=verifState(a)==='verified'; panel.scrollIntoView({behavior:'smooth',block:'start'});
+  };
+  const decide=ok=>{
+    const err=m=>{ const x=panel.querySelector('.form-error'); x.textContent=m; x.hidden=false; };
+    const reason=panel.querySelector('[name=reason]').value.trim();
+    if(!ok && reason.length<5) return err('Please give the host a short reason so they can fix it.');
+    const accs=getAccounts(), a=accs.find(x=>x.id===current); if(!a) return;
+    a.verification=Object.assign({},a.verification,{status:ok?'verified':'rejected',decidedAt:Date.now(),decidedBy:getSession().name,reason:ok?'':reason});
+    if(!putLS(K.acc,JSON.stringify(accs))) return err(QUOTA_MSG);
+    sendEmail(a.email,ok?'Your host account is verified':'Your verification was not approved',ok?'Good news! Your identity has been checked and your host account is now verified. Guests will see a “Verified host” badge on your listings.':'We could not approve your verification. Reason: '+reason+' You can correct your details and submit again from your host profile.',{href:'host-profile.html',text:'Open host profile'});
+    panel.hidden=true; showToast(ok?'Host verified':'Verification rejected'); window.dispatchEvent(new CustomEvent('se-users-changed'));
+  };
+  panel.querySelector('[data-vr-verify]').addEventListener('click',()=>decide(true));
+  panel.querySelector('[data-vr-reject]').addEventListener('click',()=>decide(false));
+  panel.querySelector('[data-vr-close]').addEventListener('click',()=>{ panel.hidden=true; });
+  return open;
+}
+
 /* ---------- host / admin application shell ---------- */
 function initShell(){
   const shell=document.querySelector('[data-shell]');
@@ -1422,9 +1598,11 @@ async function handleRegister(form){
   const list=getAccounts();
   if(list.some(a=>a.email===email)) return formMessage(form,'An account with this email already exists. Please sign in instead.');
   const salt=newSalt();
-  const account={id:'user-'+Date.now(),created:Date.now(),name,email,role,salt,hash:await sha(salt+password)};
+  const account={id:'user-'+Date.now(),created:Date.now(),name,email,role,salt,hash:await sha(salt+password),emailVerified:false};
+  if(role==='host') account.verification={status:'unverified'};
+  issueEmailToken(account);
   list.push(account); saveAccounts(list); setSession(account);
-  setFlash(`Welcome to StayExplore, ${name.split(' ')[0]}! Your ${roleLabel(role).toLowerCase()} account is ready.`);
+  setFlash(`Welcome to StayExplore, ${name.split(' ')[0]}! Your ${roleLabel(role).toLowerCase()} account is ready. We sent a confirmation link to your demo mailbox.`);
   go(safeNext(role)||routeForRole(role));
 }
 async function handleLogin(form){
@@ -1472,6 +1650,7 @@ function initBookingFlow(){
   if(reserve) reserve.addEventListener('click',e=>{
     const d=readDraftFromPage();
     if(!d.checkin||!d.checkout||nightsBetween(d.checkin,d.checkout)<1){ e.preventDefault(); showToast('Choose a check-out date after your check-in date.'); return; }
+    const ne=needEmailConfirmed(); if(ne){ e.preventDefault(); showToast(ne); return; }
     const busy=stayConflict(d.stayId,d.checkin,d.checkout); if(busy){ e.preventDefault(); showToast(busy); return; }
     ss.set(K.draft,JSON.stringify(d));
   });
@@ -1635,7 +1814,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
     initSearch(); initAttractionList(); initStayPage(); initAttractionPage();
     initHostListings(); initHostEdit(); initHostDashboard(); initHostBookings(); initHostPayments(); initHostAvailability(); initTouristBookings();
     initAdminListings(); initAdminAttractions(); initAdminUsers(); initAdminDashboard();
-    initReviewPage(); initHostReviews(); initAdminReviews(); initIncidentForm(); initAdminIncidents(); initMessages(); paintBadges(); initPaymentPage();
+    initReviewPage(); initHostReviews(); initAdminReviews(); initIncidentForm(); initAdminIncidents(); initMessages(); paintBadges(); initPaymentPage(); initBackup(); initConfirmEmail(); initMailbox(); initHostVerify(); renderVerifyBanner();
     bindTabs(); initDateInputs(); initProfile();
     initBookingFlow(); initFavourites(); bindPreviews(); initPhotoUpload(); bindForms(); bindMisc();
     const m=consumeFlash(); if(m) setTimeout(()=>showToast(m),120);

@@ -1,5 +1,19 @@
 # StayExplore Kenya: Frontend Website
 
+## Update 7: email confirmation and host verification (project document §1.4)
+A website prototype cannot send real email or run real identity checks, so both are working simulations of the real process.
+- **Email confirmation.** New tourist and host accounts start *unconfirmed*. Registration "sends" a message with a random single-use link (valid 24 hours) to the **Demo mailbox** (`mailbox.html`, linked from the reminder banner), which stands in for the user's inbox. Opening the link confirms the address; used or expired links are refused and a new link can be requested (older links stop working). Until confirmed, a tourist cannot book and a host cannot submit a listing. Changing your email on the profile page requires confirming the new address. The built-in sample accounts and accounts created before this feature count as confirmed.
+- **Host verification.** New hosts start *Not verified*. On Host profile they submit their legal name, ID type and number, an optional property-proof reference and a photo of their ID. Administrators review it under Manage users (filter "Hosts awaiting verification", **Review ID**), then **Verify** or **Reject with a reason**. The host is told by message either way and can resubmit. Verified hosts get a "✓ Verified host" badge on search cards and stay pages; the admin listing checks warn when a host is unverified. The sample hosts are pre-verified.
+- The profile pages now show the real status (for example "Host · Verified · Email confirmed") instead of a fixed "Verified" label.
+- In a live system the mailbox becomes real email, and ID photos and verification decisions are stored and audited on a server.
+
+## Running on another computer
+- **Extract the whole zip first** and keep the folder together (`index.html`, `css/`, `js/`, `assets/`, `vendor/`). Opening a page from inside the zip, or copying only some files, makes images and styles disappear. Then either double-click `index.html`, or (more reliable) serve the folder: `python -m http.server 8000` and open http://localhost:8000, or use VS Code's Live Server.
+- **Your data stays in the browser it was created in.** Accounts you register, listings, bookings, reviews, messages and any photos you upload through the forms are saved in that browser's local storage, so they do not travel with the folder. The images bundled in `assets/` do.
+- **To move your data:** on the old computer sign in as admin → Admin overview → **Export backup**. On the new computer sign in as admin (`admin@stayexplore.co.ke` / `Admin123!`, always available) → **Import backup**. Everything comes across, including uploaded photos. **Reset to sample data** returns the demo to its original state.
+- **Logins that always exist on any computer:** admin `admin@stayexplore.co.ke` / `Admin123!`; tourist `tourist@stayexplore.co.ke` / `Tourist123!`; the sample hosts listed under Update 3 (password `Host123!`).
+- The map needs internet for its tiles and place search. Everything else works offline.
+
 ## Update 6: review-driven fixes
 - **Payments are tracking only (as in the project document), not a card gateway.** The card/phone fields are gone. The tourist picks Pay on arrival (cash), Bank transfer or M-Pesa (sent manually), optionally adds a bank/M-Pesa reference, and the booking is saved as *Awaiting payment*. The host marks it **Paid** in Payment tracking (or undoes it), and the status shows to both sides on My bookings and the confirmation page. Cancelling a paid booking shows *Refunded*; cancelling an unpaid one shows *Not charged*. Host earnings count only received payments. Live gateways (M-Pesa/Stripe) stay in future scope.
 - **Smart Score** is calculated inside the app and shown only as a number on each card. How it is worked out is deliberately not shown to users (that logic belongs on the server in a real build).
